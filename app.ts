@@ -92,5 +92,24 @@ app.post("/generateToken", async (req, res) => {
   }
 });
 
+app.get("/get_profile", async (req, res) => {
+  const { access_token, shop_id } = req.query;
+  const timestamp = Math.floor(Date.now() / 1000);
+  const path = "/api/v2/shop/get_profile";
+
+  const baseString = `${partner_id}${path}${timestamp}${access_token}${shop_id}`;
+  const sign = crypto
+    .createHmac("sha256", partner_key)
+    .update(baseString)
+    .digest("hex");
+
+  const url = `${host}${path}?partner_id=${partner_id}&timestamp=${timestamp}&access_token=${access_token}&shop_id=${shop_id}&sign=${sign}`;
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  res.json(data);
+});
+
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
