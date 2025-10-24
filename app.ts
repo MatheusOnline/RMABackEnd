@@ -1,13 +1,22 @@
 import express from "express";
 import cors from "cors";
+import fetch from "node-fetch"; 
+import crypto from "crypto";
 
 import { RmaModel } from "./RmaModel";
 import mongoose from "mongoose";
+
+const partner_id = 2013259;
+const partner_key = "shpk79414a436a4a64585553496764445948414c66555372416945654d7a424a";
+const host = "https://partner.shopeemobile.com";
+
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 const uri = "mongodb+srv://matheus:Cavalo123!@dados.mkmjd.mongodb.net/meuBanco?retryWrites=true&w=majority";
+
+
 
 mongoose.connect(uri)
   .then(() => console.log("✅ Conectado ao MongoDB Atlas"))
@@ -47,8 +56,41 @@ app.get("/rma", async (req, res) => {
   }
 });
 
-app.get("/teste", (req,res) =>{
-  res.send("teste")
-})
+app.post("/generateToken", async (req, res) => {
+  try {
+    const { code, shop_id } = req.body;
+
+    if (!code || !shop_id)
+      return res.status(400).json({ error: "code e shop_id são obrigatórios" });
+
+    const ts = Math.floor(Date.now() / 1000);
+    const path = "/api/v2/auth/token/get";
+    const baseStr = `${partner_id}${path}${ts}`;
+    const sign = crypto
+      .createHmac("sha256", partner_key)
+      .update(baseStr)
+      .digest("hex");
+
+    const url = `${host}${path}?partner_id=${partner_id}&timestamp=${ts}&sign=${sign}`;
+    const body = {
+      code,
+      shop_id: Number(shop_id),
+      partner_id: partner_id,
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao gerar o token");
+  }
+});
+
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
