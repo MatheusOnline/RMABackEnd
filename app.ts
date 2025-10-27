@@ -127,31 +127,46 @@ interface ShopeeReturnsResponse {
   // outros campos que a API retorna
 }
 
+interface ShopeeReturn {
+  return_id: number;
+}
+
+interface ShopeeReturnsResponse {
+  returns?: ShopeeReturn[];
+}
+
+// Função para gerar a URL da API com assinatura
+function generateReturnsURL(shop_id: number, token: string, offset: number, limit: number) {
+  const path = "/api/v2/returns/get_returns";
+  const timestamp = Math.floor(Date.now() / 1000);
+  const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+  const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
+
+  const url = `${host}${path}?partner_id=${partner_id}&timestamp=${timestamp}&access_token=${token}&shop_id=${shop_id}&sign=${sign}`;
+  const body = {
+    pagination_offset: offset,
+    pagination_entries_per_page: limit
+  };
+
+  return { url, body };
+}
+
+// Rota para pegar todos os return_ids
 app.post("/get_return", async (req, res) => {
   const { shop_id, token } = req.body;
 
-  if (!shop_id || !token) return res.status(400).json({ error: "Faltando shop_id ou token" });
+  if (!shop_id || !token) {
+    return res.status(400).json({ error: "Faltando shop_id ou token" });
+  }
 
   try {
-    const path = "/api/v2/returns/get_returns";
-    let allReturnIds: number[] = [];
-    let offset = 0;
     const limit = 100;
+    let offset = 0;
+    let allReturnIds: number[] = [];
     let hasMore = true;
 
     while (hasMore) {
-      const timestamp = Math.floor(Date.now() / 1000);
-      // Monta string para assinatura
-      const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
-      const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
-
-      const url = `${host}${path}?partner_id=${partner_id}&timestamp=${timestamp}&access_token=${token}&shop_id=${shop_id}&sign=${sign}`;
-
-      // Corpo da requisição
-      const body = {
-        pagination_offset: offset,
-        pagination_entries_per_page: limit
-      };
+      const { url, body } = generateReturnsURL(Number(shop_id), token, offset, limit);
 
       const response = await fetch(url, {
         method: "POST",
@@ -159,19 +174,16 @@ app.post("/get_return", async (req, res) => {
         body: JSON.stringify(body),
       });
 
-      const data = await response.json() as ShopeeReturnsResponse;
-      console.log("Página:", offset / limit + 1, "Retornos recebidos:", data.returns?.length);
+      const data = (await response.json()) as ShopeeReturnsResponse;
 
       if (data.returns && data.returns.length > 0) {
         allReturnIds.push(...data.returns.map(r => r.return_id));
       }
 
-      // Se menos que limit, acabou, senão continua
       hasMore = (data.returns?.length || 0) === limit;
       offset += limit;
     }
 
-    console.log("Total de devoluções:", allReturnIds.length);
     res.json({ returnIds: allReturnIds });
   } catch (err) {
     console.error("Erro ao buscar devoluções:", err);
