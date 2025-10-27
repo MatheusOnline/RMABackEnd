@@ -130,22 +130,23 @@ interface ShopeeReturnsResponse {
 app.post("/get_return", async (req, res) => {
   const { shop_id, token } = req.body;
 
-  if (!shop_id || !token) {
+  if (!shop_id || !token)
     return res.status(400).json({ error: "Faltando shop_id ou token" });
-  }
 
   try {
     const path = "/api/v2/returns/get_return_list";
     const timestamp = Math.floor(Date.now() / 1000);
 
-    // Cria o sign
+    // Últimos 30 dias
+    const create_time_to = timestamp;
+    const create_time_from = timestamp - 30 * 24 * 60 * 60;
+
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
       .createHmac("sha256", partner_key)
       .update(baseString)
       .digest("hex");
 
-    // Monta a URL (com query params como no Python)
     const params = new URLSearchParams({
       partner_id: partner_id.toString(),
       timestamp: timestamp.toString(),
@@ -153,26 +154,21 @@ app.post("/get_return", async (req, res) => {
       shop_id: shop_id.toString(),
       sign: sign,
       page_no: "1",
-      page_size: "10",
-      status: "REQUESTED",
-      negotiation_status: "TERMINATED",
-      seller_proof_status: "PENDING",
-      seller_compensation_status: "NOT_REQUIRED",
-      create_time_from: "1655392442",
-      create_time_to: "1655392542",
-      update_time_from: "1655392442",
-      update_time_to: "1655392542",
+      page_size: "50",
+      create_time_from: create_time_from.toString(),
+      create_time_to: create_time_to.toString(),
     });
 
     const url = `${host}${path}?${params.toString()}`;
+    console.log("Shopee URL:", url);
 
-    // Faz o GET para a Shopee
-    const response = await fetch(url, { method: "GET" });
+    const response = await fetch(url);
     const data = await response.json();
 
-    res.json(data);
+    const returnIds = data.response?.return?.map((r: any) => r.return_id) || [];
+    res.json({ returnIds, fullResponse: data });
   } catch (err) {
-    console.error("Erro ao buscar lista de devoluções:", err);
+    console.error("Erro ao buscar devoluções:", err);
     res.status(500).json({ error: "Erro ao buscar devoluções" });
   }
 });
