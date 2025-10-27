@@ -127,31 +127,6 @@ interface ShopeeReturnsResponse {
   // outros campos que a API retorna
 }
 
-interface ShopeeReturn {
-  return_id: number;
-}
-
-interface ShopeeReturnsResponse {
-  returns?: ShopeeReturn[];
-}
-
-// Função para gerar a URL da API com assinatura
-function generateReturnsURL(shop_id: number, token: string, offset: number, limit: number) {
-  const path = "/api/v2/returns/get_returns";
-  const timestamp = Math.floor(Date.now() / 1000);
-  const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
-  const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
-
-  const url = `${host}${path}?partner_id=${partner_id}&timestamp=${timestamp}&access_token=${token}&shop_id=${shop_id}&sign=${sign}`;
-  const body = {
-    pagination_offset: offset,
-    pagination_entries_per_page: limit
-  };
-
-  return { url, body };
-}
-
-// Rota para pegar todos os return_ids
 app.post("/get_return", async (req, res) => {
   const { shop_id, token } = req.body;
 
@@ -160,33 +135,44 @@ app.post("/get_return", async (req, res) => {
   }
 
   try {
-    const limit = 100;
-    let offset = 0;
-    let allReturnIds: number[] = [];
-    let hasMore = true;
+    const path = "/api/v2/returns/get_return_list";
+    const timestamp = Math.floor(Date.now() / 1000);
 
-    while (hasMore) {
-      const { url, body } = generateReturnsURL(Number(shop_id), token, offset, limit);
+    // Cria o sign
+    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+    const sign = crypto
+      .createHmac("sha256", partner_key)
+      .update(baseString)
+      .digest("hex");
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+    // Monta a URL (com query params como no Python)
+    const params = new URLSearchParams({
+      partner_id: partner_id.toString(),
+      timestamp: timestamp.toString(),
+      access_token: token,
+      shop_id: shop_id.toString(),
+      sign: sign,
+      page_no: "1",
+      page_size: "10",
+      status: "REQUESTED",
+      negotiation_status: "TERMINATED",
+      seller_proof_status: "PENDING",
+      seller_compensation_status: "NOT_REQUIRED",
+      create_time_from: "1655392442",
+      create_time_to: "1655392542",
+      update_time_from: "1655392442",
+      update_time_to: "1655392542",
+    });
 
-      const data = (await response.json()) as ShopeeReturnsResponse;
+    const url = `${host}${path}?${params.toString()}`;
 
-      if (data.returns && data.returns.length > 0) {
-        allReturnIds.push(...data.returns.map(r => r.return_id));
-      }
+    // Faz o GET para a Shopee
+    const response = await fetch(url, { method: "GET" });
+    const data = await response.json();
 
-      hasMore = (data.returns?.length || 0) === limit;
-      offset += limit;
-    }
-
-    res.json({ returnIds: allReturnIds });
+    res.json(data);
   } catch (err) {
-    console.error("Erro ao buscar devoluções:", err);
+    console.error("Erro ao buscar lista de devoluções:", err);
     res.status(500).json({ error: "Erro ao buscar devoluções" });
   }
 });
