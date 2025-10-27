@@ -133,24 +133,48 @@ app.post("/get_return", async (req, res) => {
   if (!shop_id || !token) return res.status(400).json({ error: "Faltando shop_id ou token" });
 
   try {
-    const response = await fetch("https://partner.shopeemobile.com/api/v2/returns/get_returns", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        shop_id,
-        access_token: token,
-        pagination_offset: 0,
-        pagination_entries_per_page: 100,
-      }),
-    });
+    const path = "/api/v2/returns/get_returns";
+    let allReturnIds: number[] = [];
+    let offset = 0;
+    const limit = 100;
+    let hasMore = true;
 
-    // Tipando a resposta
-    const data = (await response.json()) as ShopeeReturnsResponse;
-    const returnIds = data.returns?.map(r => r.return_id) || [];
+    while (hasMore) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      // Monta string para assinatura
+      const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+      const sign = crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
 
-    res.json({ returnIds });
-  } catch (error) {
-    console.error(error);
+      const url = `${host}${path}?partner_id=${partner_id}&timestamp=${timestamp}&access_token=${token}&shop_id=${shop_id}&sign=${sign}`;
+
+      // Corpo da requisição
+      const body = {
+        pagination_offset: offset,
+        pagination_entries_per_page: limit
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json() as ShopeeReturnsResponse;
+      console.log("Página:", offset / limit + 1, "Retornos recebidos:", data.returns?.length);
+
+      if (data.returns && data.returns.length > 0) {
+        allReturnIds.push(...data.returns.map(r => r.return_id));
+      }
+
+      // Se menos que limit, acabou, senão continua
+      hasMore = (data.returns?.length || 0) === limit;
+      offset += limit;
+    }
+
+    console.log("Total de devoluções:", allReturnIds.length);
+    res.json({ returnIds: allReturnIds });
+  } catch (err) {
+    console.error("Erro ao buscar devoluções:", err);
     res.status(500).json({ error: "Erro ao buscar devoluções" });
   }
 });
