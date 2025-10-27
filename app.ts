@@ -92,7 +92,7 @@ app.post("/generateToken", async (req, res) => {
   }
 });
 
-app.get("/get_profile", async (req, res) => {
+app.post("/get_profile", async (req, res) => {
   const { access_token, shop_id } = req.query;
   const timestamp = Math.floor(Date.now() / 1000);
   const path = "/api/v2/shop/get_profile";
