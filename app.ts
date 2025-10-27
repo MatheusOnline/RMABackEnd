@@ -117,5 +117,42 @@ app.post("/get_profile", async (req, res) => {
   }
 });
 
+interface ShopeeReturn {
+  return_id: number;
+  // outros campos que quiser
+}
+
+interface ShopeeReturnsResponse {
+  returns?: ShopeeReturn[];
+  // outros campos que a API retorna
+}
+
+app.post("/get_return", async (req, res) => {
+  const { shop_id, token } = req.body;
+
+  if (!shop_id || !token) return res.status(400).json({ error: "Faltando shop_id ou token" });
+
+  try {
+    const response = await fetch("https://partner.shopeemobile.com/api/v2/returns/get_returns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shop_id,
+        access_token: token,
+        pagination_offset: 0,
+        pagination_entries_per_page: 100,
+      }),
+    });
+
+    // Tipando a resposta
+    const data = (await response.json()) as ShopeeReturnsResponse;
+    const returnIds = data.returns?.map(r => r.return_id) || [];
+
+    res.json({ returnIds });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao buscar devoluções" });
+  }
+});
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
