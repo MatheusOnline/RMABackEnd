@@ -93,7 +93,9 @@ app.post("/generateToken", async (req, res) => {
 });
 
 app.post("/get_profile", async (req, res) => {
-  const { access_token, shop_id } = req.query;
+  const { token, shop_id } = req.body; // <-- era req.query
+  const access_token = token;          // alias p/ manter compatível
+
   const timestamp = Math.floor(Date.now() / 1000);
   const path = "/api/v2/shop/get_profile";
 
@@ -105,10 +107,14 @@ app.post("/get_profile", async (req, res) => {
 
   const url = `${host}${path}?partner_id=${partner_id}&timestamp=${timestamp}&access_token=${access_token}&shop_id=${shop_id}&sign=${sign}`;
 
-  const response = await fetch(url);
-  const data = await response.json();
-
-  res.json(data);
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao buscar perfil" });
+  }
 });
 
 
