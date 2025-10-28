@@ -129,10 +129,10 @@ interface ShopeeReturnsResponse {
 
 app.post("/get_return", async (req, res) => {
   try {
-    const { token, shop_id } = req.body;
+    const { token, shop_id, days } = req.body;
     const timestamp = Math.floor(Date.now() / 1000);
     // Janela de 15 dias (máximo permitido pela API)
-    const fifteenDaysAgo = timestamp - 1 * 24 * 60 * 60;
+    const fifteenDaysAgo = timestamp - days * 24 * 60 * 60;
 
     const path = "/api/v2/returns/get_return_list";
 
