@@ -152,7 +152,7 @@ function generateSign(path: string, timestamp: number): string {
 // -------------------------------
 // GET devoluções + cancelamentos
 // -------------------------------
-app.post("/get_all_returns_and_cancels", async (req , res) => {
+app.post("/get_return", async (req , res) => {
   try {
     const { access_token, shop_id,days } = req.body;
     if (!access_token || !shop_id)
