@@ -131,13 +131,11 @@ app.post("/get_return", async (req, res) => {
   try {
     const { token, shop_id } = req.body;
     const timestamp = Math.floor(Date.now() / 1000);
-    // 1. NOVO: Calcular o timestamp de 15 dias atrás
-    const fifteenDaysAgo = timestamp - 15 * 24 * 60 * 60; // 15 dias em segundos
-
+    // Janela de 15 dias (máximo permitido pela API)
+    const fifteenDaysAgo = timestamp - 15 * 24 * 60 * 60; 
+    
     const path = "/api/v2/returns/get_return_list";
-
-    // A assinatura (sign) deve ser gerada APENAS com os 5 parâmetros obrigatórios.
-    // Os parâmetros de tempo não fazem parte da string base de autenticação padrão.
+    
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
       .createHmac("sha256", partner_key)
@@ -157,10 +155,10 @@ app.post("/get_return", async (req, res) => {
         page_size: "100",
         timestamp: String(timestamp),
         sign,
-        
-        // 2. NOVO: Adicionar o filtro de 15 dias!
-        create_time_from: String(fifteenDaysAgo),
-        create_time_to: String(timestamp) // Opcional, mas garante o limite final
+        
+        // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
+        update_time_from: String(fifteenDaysAgo),
+        update_time_to: String(timestamp)
       };
 
       const urlParams = new URLSearchParams(params).toString();
@@ -171,9 +169,14 @@ app.post("/get_return", async (req, res) => {
       const response = await fetch(url);
       const data = await response.json() as {
         response?: { return?: any[]; has_more?: boolean };
+        error?: string; 
+        message?: string;
       };
+        
+      if (data.error) {
+        throw new Error(`API Error: ${data.error} - ${data.message}`);
+      }
 
-      // Restante do código de paginação...
       const returnList = data?.response?.return || [];
       allReturns.push(...returnList);
 
@@ -186,7 +189,7 @@ app.post("/get_return", async (req, res) => {
 
   } catch (err) {
     console.error("❌ Erro ao buscar devoluções:", err);
-    res.status(500).json({ error: "Erro ao buscar devoluções" });
+     res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
   }
 });
 
