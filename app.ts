@@ -137,7 +137,7 @@ app.post("/get_return", async (req, res) => {
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
       .createHmac("sha256", partner_key)
-      .update(baseString)
+      .update(baseString) 
       .digest("hex");
 
     let page = 1;
