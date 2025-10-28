@@ -164,10 +164,10 @@ app.post("/get_return", async (req, res) => {
 
       const response = await fetch(url);
       const data = (await response.json()) as {
-        response?: { return_list?: any[]; has_more?: boolean };
+        response?: { return?: any[]; has_more?: boolean };
       };
 
-      const returnList = data?.response?.return_list || [];
+      const returnList = data?.response?.return || [];
       if (returnList.length > 0) {
         allReturns.push(...returnList);
       }
