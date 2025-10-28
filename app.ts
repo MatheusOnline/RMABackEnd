@@ -132,7 +132,7 @@ app.post("/get_return", async (req, res) => {
     const { token, shop_id } = req.body;
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const sevenDaysAgo = timestamp - 5 * 24 * 60 * 60; // últimos  dias
+    const sevenDaysAgo = timestamp - 7 * 24 * 60 * 60; // últimos  dias
 
     const path = "/api/v2/returns/get_return_list";
 
@@ -164,6 +164,7 @@ app.post("/get_return", async (req, res) => {
     const response = await fetch(url);
     const data = await response.json();
 
+    console.log(timestamp, sevenDaysAgo )
     res.json(data);
   } catch (err) {
     console.error("❌ Erro ao buscar devoluções:", err);
