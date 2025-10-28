@@ -117,109 +117,80 @@ app.post("/get_profile", async (req, res) => {
   }
 });
 
-// Tipos das respostas (simplificados)
-interface ShopeeReturnItem {
-  return_sn: string;
-  order_sn: string;
-  status: string;
-  reason: string;
-  [key: string]: any;
+interface ShopeeReturn {
+  return_id: number;
+  // outros campos que quiser
 }
 
-interface ShopeeOrderItem {
-  order_sn: string;
-  order_status: string;
-  [key: string]: any;
+interface ShopeeReturnsResponse {
+  returns?: ShopeeReturn[];
+  // outros campos que a API retorna
 }
 
-interface ShopeeReturnResponse {
-  response?: {
-    return?: ShopeeReturnItem[];
-  };
-}
-
-interface ShopeeOrderResponse {
-  response?: {
-    order_list?: ShopeeOrderItem[];
-  };
-}
-
-function generateSign(path: string, timestamp: number): string {
-  const baseString = `${partner_id}${path}${timestamp}`;
-  return crypto.createHmac("sha256", partner_key).update(baseString).digest("hex");
-}
-
-// -------------------------------
-// GET devoluções + cancelamentos
-// -------------------------------
-app.post("/get_return", async (req , res) => {
+app.post("/get_return", async (req, res) => {
   try {
-    const { token, shop_id,days } = req.body;
-    const access_token = token;
-    if (!access_token || !shop_id)
-      return res.status(400).json({ error: "Faltando access_token ou shop_id" });
-
+    const { token, shop_id, days } = req.body;
     const timestamp = Math.floor(Date.now() / 1000);
-    const create_time_from = timestamp - days * 24 * 60 * 60;
-    const create_time_to = timestamp;
+    // Janela de 15 dias (máximo permitido pela API)
+    const fifteenDaysAgo = timestamp - days * 24 * 60 * 60;
 
-    // ---------------- DEVOLUÇÕES ----------------
-    const pathReturn = "/api/v2/returns/get_return_list";
-    const signReturn = generateSign(pathReturn, timestamp);
+    const path = "/api/v2/returns/get_return_list";
 
-    const returnUrl = new URL(`${host}${pathReturn}`);
-    returnUrl.search = new URLSearchParams({
-      access_token,
-      partner_id: String(partner_id), 
-      shop_id,
-      timestamp: timestamp.toString(),
-      sign: signReturn,
-      create_time_from: create_time_from.toString(),
-      create_time_to: create_time_to.toString(),
-      page_no: "1",
-      page_size: "100",
-    }).toString();
+    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+    const sign = crypto
+      .createHmac("sha256", partner_key)
+      .update(baseString)
+      .digest("hex");
 
-    const returnsRes = await fetch(returnUrl);
-    const returnsData = (await returnsRes.json()) as ShopeeReturnResponse;
-    const returnsList = returnsData.response?.return || [];
+    let page = 1;
+    let allReturns: any[] = [];
+    let hasMore = true;
 
-    // ---------------- CANCELAMENTOS ----------------
-    const pathOrder = "/api/v2/order/get_order_list";
-    const signOrder = generateSign(pathOrder, timestamp);
+    while (hasMore) {
+      const params = {
+        access_token: token,
+        partner_id: String(partner_id),
+        shop_id: String(shop_id),
+        page_no: String(page),
+        page_size: "100",
+        timestamp: String(timestamp),
+        sign,
 
-    const orderUrl = new URL(`${host}${pathOrder}`);
-    orderUrl.search = new URLSearchParams({
-      access_token,
-      partner_id: String(partner_id),
-      shop_id,
-      timestamp: timestamp.toString(),
-      sign: signOrder,
-      time_range_field: "update_time",
-      time_from: create_time_from.toString(),
-      time_to: create_time_to.toString(),
-      page_no: "1",
-      page_size: "100",
-      order_status: "CANCELLED",
-    }).toString();
+        // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
+        update_time_from: String(fifteenDaysAgo),
+        update_time_to: String(timestamp)
+      };
 
-    const ordersRes = await fetch(orderUrl);
-    const ordersData =   (await ordersRes.json()) as ShopeeOrderResponse;
-    const cancelledOrders = ordersData.response?.order_list || [];
+      const urlParams = new URLSearchParams(params).toString();
+      const url = `${host}${path}?${urlParams}`;
 
-    // Retorno final
-    console.log(returnsList)
-    console.log(cancelledOrders)
+      console.log(`🔗 Página ${page}: ${url}`);
 
-    res.json({
-      devolucoes_reembolsos: returnsList,
-      cancelamentos: cancelledOrders,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao buscar devoluções e cancelamentos" });
+      const response = await fetch(url);
+      const data = await response.json() as {
+        response?: { return?: any[]; has_more?: boolean };
+        error?: string;
+        message?: string;
+      };
+
+      if (data.error) {
+        throw new Error(`API Error: ${data.error} - ${data.message}`);
+      }
+
+      const returnList = data?.response?.return || [];
+      allReturns.push(...returnList);
+
+      hasMore = data?.response?.has_more ?? false;
+      page++;
+    }
+
+    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+    res.json({ return_list: allReturns });
+
+  } catch (err) {
+    console.error("❌ Erro ao buscar devoluções:", err);
+    res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
   }
 });
-
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
