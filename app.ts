@@ -152,6 +152,7 @@ app.post("/get_return", async (req, res) => {
         page_no: String(page),
         page_size: "100",
         timestamp: String(timestamp),
+        create_time_to: String(timestamp),
         sign
       };
 
