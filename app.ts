@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch"; 
+import fetch from "node-fetch";
 import crypto from "crypto";
 
 import { RmaModel } from "./RmaModel";
@@ -47,11 +47,11 @@ app.post("/rma", async (req, res) => {
 app.get("/rma", async (req, res) => {
   try {
     const rmas = await RmaModel.find();
-   
-    res.status(201).json({ "returns": rmas})
+
+    res.status(201).json({ "returns": rmas })
   } catch (err) {
-    console.error(err); 
-    
+    console.error(err);
+
     res.status(500).send("Erro ao buscar RMAs");
   }
 });
@@ -128,69 +128,69 @@ interface ShopeeReturnsResponse {
 }
 
 app.post("/get_return", async (req, res) => {
-  try {
-    const { token, shop_id } = req.body;
-    const timestamp = Math.floor(Date.now() / 1000);
-    // Janela de 15 dias (máximo permitido pela API)
-    const fifteenDaysAgo = timestamp - 15 * 24 * 60 * 60; 
-    
-    const path = "/api/v2/returns/get_return_list";
-    
-    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
-    const sign = crypto
-      .createHmac("sha256", partner_key)
-      .update(baseString)
-      .digest("hex");
+  try {
+    const { token, shop_id } = req.body;
+    const timestamp = Math.floor(Date.now() / 1000);
+    // Janela de 15 dias (máximo permitido pela API)
+    const fifteenDaysAgo = timestamp - 1 * 24 * 60 * 60;
 
-    let page = 1;
-    let allReturns: any[] = [];
-    let hasMore = true;
+    const path = "/api/v2/returns/get_return_list";
 
-    while (hasMore) {
-      const params = {
-        access_token: token,
-        partner_id: String(partner_id),
-        shop_id: String(shop_id),
-        page_no: String(page),
-        page_size: "100",
-        timestamp: String(timestamp),
-        sign,
-        
-        // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
-        update_time_from: String(fifteenDaysAgo),
-        update_time_to: String(timestamp)
-      };
+    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+    const sign = crypto
+      .createHmac("sha256", partner_key)
+      .update(baseString)
+      .digest("hex");
 
-      const urlParams = new URLSearchParams(params).toString();
-      const url = `${host}${path}?${urlParams}`;
+    let page = 1;
+    let allReturns: any[] = [];
+    let hasMore = true;
 
-      console.log(`🔗 Página ${page}: ${url}`);
+    while (hasMore) {
+      const params = {
+        access_token: token,
+        partner_id: String(partner_id),
+        shop_id: String(shop_id),
+        page_no: String(page),
+        page_size: "100",
+        timestamp: String(timestamp),
+        sign,
 
-      const response = await fetch(url);
-      const data = await response.json() as {
-        response?: { return?: any[]; has_more?: boolean };
-        error?: string; 
-        message?: string;
-      };
-        
-      if (data.error) {
-        throw new Error(`API Error: ${data.error} - ${data.message}`);
-      }
+        // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
+        update_time_from: String(fifteenDaysAgo),
+        update_time_to: String(timestamp)
+      };
 
-      const returnList = data?.response?.return || [];
-      allReturns.push(...returnList);
+      const urlParams = new URLSearchParams(params).toString();
+      const url = `${host}${path}?${urlParams}`;
 
-      hasMore = data?.response?.has_more ?? false;
-      page++;
-    }
+      console.log(`🔗 Página ${page}: ${url}`);
 
-    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
-    res.json({ return_list: allReturns });
+      const response = await fetch(url);
+      const data = await response.json() as {
+        response?: { return?: any[]; has_more?: boolean };
+        error?: string;
+        message?: string;
+      };
 
-  } catch (err) {
-    console.error("❌ Erro ao buscar devoluções:", err);
-     res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
-  }
+      if (data.error) {
+        throw new Error(`API Error: ${data.error} - ${data.message}`);
+      }
+
+      const returnList = data?.response?.return || [];
+      allReturns.push(...returnList);
+
+      hasMore = data?.response?.has_more ?? false;
+      page++;
+    }
+
+    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+    res.json({ return_list: allReturns });
+
+  } catch (err) {
+    console.error("❌ Erro ao buscar devoluções:", err);
+    res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
+  }
 });
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
