@@ -130,59 +130,45 @@ interface ShopeeReturnsResponse {
 app.post("/get_return", async (req, res) => {
   try {
     const { token, shop_id } = req.body;
+
     const timestamp = Math.floor(Date.now() / 1000);
-    const ninetyDaysAgo = timestamp - 90 * 24 * 60 * 60; // últimos 90 dias
+    const sevenDaysAgo = timestamp - 15 * 24 * 60 * 60; // últimos  dias
 
     const path = "/api/v2/returns/get_return_list";
+
+    // gerar assinatura
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
       .createHmac("sha256", partner_key)
-      .update(baseString) 
+      .update(baseString)
       .digest("hex");
 
-    let page = 1;
-    let allReturns: any[] = [];
-    let hasMore = true;
+    // parâmetros da requisição (convertendo tudo para string)
+    const params = {
+      access_token: token,
+      create_time_from: String(sevenDaysAgo),
+      create_time_to: String(timestamp),
+      partner_id: String(partner_id),
+      shop_id: String(shop_id),
+      page_no: "1",
+      page_size: "10",
+      timestamp: String(timestamp),
+      sign
+    };
 
-    while (hasMore) {
-      const params = {
-        access_token: token,
-        create_time_from: String(ninetyDaysAgo),
-        create_time_to: String(timestamp),
-        partner_id: String(partner_id),
-        shop_id: String(shop_id),
-        page_no: String(page),
-        page_size: "100",
-        timestamp: String(timestamp),
-        sign,
-      };
+    const urlParams = new URLSearchParams(params).toString();
+    const url = `${host}${path}?${urlParams}`;
 
-      const urlParams = new URLSearchParams(params).toString();
-      const url = `${host}${path}?${urlParams}`;
+    console.log("🔗 URL gerada:", url);
 
-      console.log(`🔗 Página ${page}: ${url}`);
+    const response = await fetch(url);
+    const data = await response.json();
 
-      const response = await fetch(url);
-      const data = (await response.json()) as {
-        response?: { return?: any[]; has_more?: boolean };
-      };
-
-      const returnList = data?.response?.return || [];
-      if (returnList.length > 0) {
-        allReturns.push(...returnList);
-      }
-
-      hasMore = data?.response?.has_more || false;
-      page++;
-    }
-
-    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
-    res.json({ return_list: allReturns });
+    res.json(data);
   } catch (err) {
     console.error("❌ Erro ao buscar devoluções:", err);
     res.status(500).json({ error: "Erro ao buscar devoluções" });
   }
 });
-
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
