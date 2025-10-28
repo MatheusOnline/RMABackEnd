@@ -154,7 +154,8 @@ function generateSign(path: string, timestamp: number): string {
 // -------------------------------
 app.post("/get_return", async (req , res) => {
   try {
-    const { access_token, shop_id,days } = req.body;
+    const { token, shop_id,days } = req.body;
+    const access_token = token;
     if (!access_token || !shop_id)
       return res.status(400).json({ error: "Faltando access_token ou shop_id" });
 
