@@ -154,12 +154,12 @@ function generateSign(path: string, timestamp: number): string {
 // -------------------------------
 app.post("/get_all_returns_and_cancels", async (req , res) => {
   try {
-    const { access_token, shop_id } = req.body;
+    const { access_token, shop_id,days } = req.body;
     if (!access_token || !shop_id)
       return res.status(400).json({ error: "Faltando access_token ou shop_id" });
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const create_time_from = timestamp - 30 * 24 * 60 * 60;
+    const create_time_from = timestamp - days * 24 * 60 * 60;
     const create_time_to = timestamp;
 
     // ---------------- DEVOLUÇÕES ----------------
@@ -207,6 +207,9 @@ app.post("/get_all_returns_and_cancels", async (req , res) => {
     const cancelledOrders = ordersData.response?.order_list || [];
 
     // Retorno final
+    console.log(returnsList)
+    console.log(cancelledOrders)
+
     res.json({
       devolucoes_reembolsos: returnsList,
       cancelamentos: cancelledOrders,
