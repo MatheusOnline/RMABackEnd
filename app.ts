@@ -128,60 +128,66 @@ interface ShopeeReturnsResponse {
 }
 
 app.post("/get_return", async (req, res) => {
-  try {
-    const { token, shop_id } = req.body;
-    const timestamp = Math.floor(Date.now() / 1000);
-    const sevenDaysAgo = timestamp - 7 * 24 * 60 * 60;
-    const path = "/api/v2/returns/get_return_list";
-    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
-    const sign = crypto
-      .createHmac("sha256", partner_key)
-      .update(baseString)
-      .digest("hex");
+  try {
+    const { token, shop_id } = req.body;
+    const timestamp = Math.floor(Date.now() / 1000);
+    // 1. NOVO: Calcular o timestamp de 15 dias atrás
+    const fifteenDaysAgo = timestamp - 15 * 24 * 60 * 60; // 15 dias em segundos
 
-    let page = 1;
-    let allReturns: any[] = [];
-    let hasMore = true;
+    const path = "/api/v2/returns/get_return_list";
 
-    while (hasMore) {
-      const params = {
-        access_token: token,
-        partner_id: String(partner_id),
-        
-        shop_id: String(shop_id),
-        page_no: String(page),
-        page_size: "100",
-        timestamp: String(timestamp),
-        
-        sign
-      };
+    // A assinatura (sign) deve ser gerada APENAS com os 5 parâmetros obrigatórios.
+    // Os parâmetros de tempo não fazem parte da string base de autenticação padrão.
+    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+    const sign = crypto
+      .createHmac("sha256", partner_key)
+      .update(baseString)
+      .digest("hex");
 
-      const urlParams = new URLSearchParams(params).toString();
-      const url = `${host}${path}?${urlParams}`;
+    let page = 1;
+    let allReturns: any[] = [];
+    let hasMore = true;
 
-      console.log(`🔗 Página ${page}: ${url}`);
+    while (hasMore) {
+      const params = {
+        access_token: token,
+        partner_id: String(partner_id),
+        shop_id: String(shop_id),
+        page_no: String(page),
+        page_size: "100",
+        timestamp: String(timestamp),
+        sign,
+        
+        // 2. NOVO: Adicionar o filtro de 15 dias!
+        create_time_from: String(fifteenDaysAgo),
+        create_time_to: String(timestamp) // Opcional, mas garante o limite final
+      };
 
-      const response = await fetch(url);
-      const data = await response.json() as {
-        response?: { return?: any[]; has_more?: boolean };
-      };
+      const urlParams = new URLSearchParams(params).toString();
+      const url = `${host}${path}?${urlParams}`;
 
-      // adicionar os retornos da página atual
-      const returnList = data?.response?.return || [];
-      allReturns.push(...returnList);
+      console.log(`🔗 Página ${page}: ${url}`);
 
-      // verificar se há mais páginas
-      hasMore = data?.response?.has_more ?? false;
-      page++;
-    }
+      const response = await fetch(url);
+      const data = await response.json() as {
+        response?: { return?: any[]; has_more?: boolean };
+      };
 
-    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
-    res.json({ return_list: allReturns });
+      // Restante do código de paginação...
+      const returnList = data?.response?.return || [];
+      allReturns.push(...returnList);
 
-  } catch (err) {
-    console.error("❌ Erro ao buscar devoluções:", err);
-    res.status(500).json({ error: "Erro ao buscar devoluções" });
-  }
+      hasMore = data?.response?.has_more ?? false;
+      page++;
+    }
+
+    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+    res.json({ return_list: allReturns });
+
+  } catch (err) {
+    console.error("❌ Erro ao buscar devoluções:", err);
+    res.status(500).json({ error: "Erro ao buscar devoluções" });
+  }
 });
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
