@@ -130,40 +130,52 @@ interface ShopeeReturnsResponse {
 app.post("/get_return", async (req, res) => {
   try {
     const { token, shop_id } = req.body;
-
     const timestamp = Math.floor(Date.now() / 1000);
-    const sevenDaysAgo = timestamp - 7 * 24 * 60 * 60; // últimos  dias
 
     const path = "/api/v2/returns/get_return_list";
-
-    // gerar assinatura
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
       .createHmac("sha256", partner_key)
       .update(baseString)
       .digest("hex");
 
-    // parâmetros da requisição (convertendo tudo para string)
-    const params = {
-      access_token: token,
-      partner_id: String(partner_id),
-      shop_id: String(shop_id),
-      page_no: "1",
-      page_size: "100",
-      timestamp: String(timestamp),
-      sign
-    };
+    let page = 1;
+    let allReturns: any[] = [];
+    let hasMore = true;
 
-    const urlParams = new URLSearchParams(params).toString();
-    const url = `${host}${path}?${urlParams}`;
+    while (hasMore) {
+      const params = {
+        access_token: token,
+        partner_id: String(partner_id),
+        shop_id: String(shop_id),
+        page_no: String(page),
+        page_size: "100",
+        timestamp: String(timestamp),
+        sign
+      };
 
-    console.log("🔗 URL gerada:", url);
+      const urlParams = new URLSearchParams(params).toString();
+      const url = `${host}${path}?${urlParams}`;
 
-    const response = await fetch(url);
-    const data = await response.json();
+      console.log(`🔗 Página ${page}: ${url}`);
 
-    console.log(timestamp, sevenDaysAgo )
-    res.json(data);
+      const response = await fetch(url);
+      const data = await response.json() as {
+        response?: { return_list?: any[]; has_more?: boolean };
+      };
+
+      // adicionar os retornos da página atual
+      const returnList = data?.response?.return_list || [];
+      allReturns.push(...returnList);
+
+      // verificar se há mais páginas
+      hasMore = data?.response?.has_more ?? false;
+      page++;
+    }
+
+    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+    res.json({ return_list: allReturns });
+
   } catch (err) {
     console.error("❌ Erro ao buscar devoluções:", err);
     res.status(500).json({ error: "Erro ao buscar devoluções" });
