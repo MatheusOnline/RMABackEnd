@@ -131,7 +131,7 @@ app.post("/get_return", async (req, res) => {
   try {
     const { token, shop_id } = req.body;
     const timestamp = Math.floor(Date.now() / 1000);
-
+    const sevenDaysAgo = timestamp - 7 * 24 * 60 * 60;
     const path = "/api/v2/returns/get_return_list";
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
@@ -147,6 +147,7 @@ app.post("/get_return", async (req, res) => {
       const params = {
         access_token: token,
         partner_id: String(partner_id),
+         create_time_from: String(sevenDaysAgo),
         shop_id: String(shop_id),
         page_no: String(page),
         page_size: "100",
