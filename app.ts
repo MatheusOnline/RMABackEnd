@@ -147,12 +147,12 @@ app.post("/get_return", async (req, res) => {
       const params = {
         access_token: token,
         partner_id: String(partner_id),
-         create_time_from: String(sevenDaysAgo),
+        
         shop_id: String(shop_id),
         page_no: String(page),
         page_size: "100",
         timestamp: String(timestamp),
-        create_time_to: String(timestamp),
+        
         sign
       };
 
