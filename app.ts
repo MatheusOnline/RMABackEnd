@@ -161,11 +161,11 @@ app.post("/get_return", async (req, res) => {
 
       const response = await fetch(url);
       const data = await response.json() as {
-        response?: { return_list?: any[]; has_more?: boolean };
+        response?: { return?: any[]; has_more?: boolean };
       };
 
       // adicionar os retornos da página atual
-      const returnList = data?.response?.return_list || [];
+      const returnList = data?.response?.return || [];
       allReturns.push(...returnList);
 
       // verificar se há mais páginas
