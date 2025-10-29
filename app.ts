@@ -155,7 +155,8 @@ app.post("/get_return", async (req, res) => {
         sign,
 
         // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
-        create_time_from: String(fifteenDaysAgo)
+        create_time_from: String(fifteenDaysAgo),
+        create_time_to: String(timestamp)
       };
 
       const urlParams = new URLSearchParams(params).toString();
