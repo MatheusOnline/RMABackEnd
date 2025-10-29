@@ -145,8 +145,6 @@ app.post("/get_return", async (req, res) => {
     
     let allReturns: any[] = [];
    
-
-   
       const params = {
         access_token: token,
         partner_id: String(partner_id),
@@ -179,7 +177,7 @@ app.post("/get_return", async (req, res) => {
 
       const returnList = data?.response?.return || [];
       allReturns.push(...returnList);
-      
+
     console.log(url)
     console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
     res.json({ return_list: allReturns });
