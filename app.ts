@@ -142,16 +142,16 @@ app.post("/get_return", async (req, res) => {
       .update(baseString)
       .digest("hex");
 
-    let page = 1;
+    
     let allReturns: any[] = [];
-    let hasMore = true;
+   
 
-    while (hasMore) {
+   
       const params = {
         access_token: token,
         partner_id: String(partner_id),
         shop_id: String(shop_id),
-        page_no: String(page),
+        page_no: "1",
         page_size: "100",
         timestamp: String(timestamp),
         sign,
@@ -164,7 +164,7 @@ app.post("/get_return", async (req, res) => {
       const urlParams = new URLSearchParams(params).toString();
       const url = `${host}${path}?${urlParams}`;
 
-      console.log(`🔗 Página ${page}: ${url}`);
+      
 
       const response = await fetch(url);
       const data = await response.json() as {
@@ -179,12 +179,6 @@ app.post("/get_return", async (req, res) => {
 
       const returnList = data?.response?.return || [];
       allReturns.push(...returnList);
-
-      if(page > 5){
-        hasMore = false;
-      }
-      page++;
-    }
 
     console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
     res.json({ return_list: allReturns });
