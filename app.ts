@@ -77,7 +77,7 @@ app.post("/generateToken", async (req, res) => {
       shop_id: Number(shop_id),
       partner_id: partner_id,
     };
-
+    
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -179,7 +179,8 @@ app.post("/get_return", async (req, res) => {
 
       const returnList = data?.response?.return || [];
       allReturns.push(...returnList);
-
+      
+    console.log(url)
     console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
     res.json({ return_list: allReturns });
 
