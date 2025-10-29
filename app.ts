@@ -150,13 +150,10 @@ app.post("/get_return", async (req, res) => {
         partner_id: String(partner_id),
         shop_id: String(shop_id),
         page_no: "1",
-        page_size: "100", 
+        page_size: "30", 
         timestamp: String(timestamp),
         sign,
 
-        // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
-        update_time_from: String(fifteenDaysAgo),
-        update_time_to: String(timestamp)
       };
 
       const urlParams = new URLSearchParams(params).toString();
