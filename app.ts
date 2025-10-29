@@ -129,60 +129,70 @@ interface ShopeeReturnsResponse {
 
 app.post("/get_return", async (req, res) => {
   try {
-    const { token, shop_id, days } = req.body;
+    const { token, shop_id,days } = req.body;
+
     const timestamp = Math.floor(Date.now() / 1000);
-   
-    const fifteenDaysAgo = timestamp - days * 24 * 60 * 60;
+    const startOfDay = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
+    const endOfDay = startOfDay + 24 * 60 * 60;
 
     const path = "/api/v2/returns/get_return_list";
-
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
     const sign = crypto
       .createHmac("sha256", partner_key)
       .update(baseString)
       .digest("hex");
 
-    
-    let allReturns: any[] = [];
-   
-      const params = {
-        access_token: token,
-        partner_id: String(partner_id),
-        shop_id: String(shop_id),
-        page_no: "1",
-        page_size: "30", 
-        timestamp: String(timestamp),
-        sign,
+    const params = {
+      access_token: token,
+      partner_id: String(partner_id),
+      shop_id: String(shop_id),
+      page_no: "1",
+      page_size: "50",
+      timestamp: String(timestamp),
+      sign,
+    };
 
+    const urlParams = new URLSearchParams(params).toString();
+    const url = `${host}${path}?${urlParams}`;
+
+    const response = await fetch(url);
+
+    // ✅ Definir tipo esperado explicitamente
+    const data = (await response.json()) as {
+      error?: string;
+      message?: string;
+      response?: {
+        return?: {
+          create_time: number;
+          [key: string]: any;
+        }[];
+        has_more?: boolean;
       };
+    };
 
-      const urlParams = new URLSearchParams(params).toString();
-      const url = `${host}${path}?${urlParams}`;
+    if (data.error) {
+      throw new Error(`API Error: ${data.error} - ${data.message}`);
+    }
 
-      
+    const allReturns = data.response?.return || [];
 
-      const response = await fetch(url);
-      const data = await response.json() as {
-        response?: { return?: any[]; has_more?: boolean };
-        error?: string;
-        message?: string;
-      };
+    // 🔍 Filtrar devoluções apenas de hoje
+    const todayReturns = allReturns.filter((r) => {
+      const createTime = r.create_time;
+      return createTime >= startOfDay && createTime < endOfDay;
+    });
 
-      if (data.error) {
-        throw new Error(`API Error: ${data.error} - ${data.message}`);
-      }
-
-      const returnList = data?.response?.return || [];
-      allReturns.push(...returnList);
-
-    console.log(url)
-    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
-    res.json({ return_list: allReturns });
+    console.log(`✅ Devoluções de hoje: ${todayReturns.length}`);
+    res.json({ return_list: todayReturns });
 
   } catch (err) {
     console.error("❌ Erro ao buscar devoluções:", err);
-    res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
+    res.status(500).json({
+      error:
+        "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API.",
+    });
   }
 });
+
 
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
