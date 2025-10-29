@@ -133,7 +133,7 @@ app.post("/get_return", async (req, res) => {
 
     const timestamp = Math.floor(Date.now() / 1000);
     const startOfDay = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
-    const endOfDay = startOfDay + 24 * 60 * 60;
+    const endOfDay = startOfDay + days * 24 * 60 * 60;
 
     const path = "/api/v2/returns/get_return_list";
     const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
