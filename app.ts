@@ -136,9 +136,8 @@ app.post("/get_return", async (req, res) => {
     var dayCount = days;
     let allReturns: any[] = [];
     
-
-  
-    
+    const VerifyStore = await StoreModel.findOne({id_store: shop_id})
+    console.log(VerifyStore)
 
    while(true){
       const fifteenDaysAgo = timestamp - dayCount * 24 * 60 * 60;
