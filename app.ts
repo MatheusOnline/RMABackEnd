@@ -135,11 +135,15 @@ app.post("/get_return", async (req, res) => {
 
     var dayCount = days;
     let allReturns: any[] = [];
+    var NewStore;
 
     const store = await StoreModel.findOne({ id_store: shop_id });
     if(store){
       dayCount = store.dayCount;
+    }else{
+      NewStore = await StoreModel.create({shop_id})
     }
+
    while(true){
       const fifteenDaysAgo = timestamp - dayCount * 24 * 60 * 60;
 
@@ -186,9 +190,9 @@ app.post("/get_return", async (req, res) => {
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
         
-        if(!store){
-          const NewStore = await StoreModel.create({shop_id, dayCount})
-
+        if(NewStore){
+         
+          await NewStore.updateOne({dayCount: dayCount})
           console.log("loja salva")
         }
 
@@ -197,7 +201,7 @@ app.post("/get_return", async (req, res) => {
 
       
       dayCount++;
-      if (dayCount > 150) break;
+      console.log(dayCount)
       await new Promise((r) => setTimeout(r, 500));
     }
     
