@@ -133,6 +133,7 @@ app.post("/get_return", async (req, res) => {
     const timestamp = Math.floor(Date.now() / 1000);
 
     var dayCount = days;
+    let allReturns: any[] = [];
    while(true){
       console.log(dayCount)
 
@@ -147,7 +148,7 @@ app.post("/get_return", async (req, res) => {
         .digest("hex");
 
 
-      let allReturns: any[] = [];
+      
 
       const params = {
         access_token: token,
@@ -183,16 +184,16 @@ app.post("/get_return", async (req, res) => {
       if(returnList.length > 0){
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
-        res.json({ return_list: allReturns });
+        
         break;
       }
       dayCount++;
       await new Promise((r) => setTimeout(r, 500));
-      
+      console.log("+1 loop")
     }
     
 
-    
+    res.json({ return_list: allReturns });
   } catch (err) {
     res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
   }
