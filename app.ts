@@ -192,7 +192,10 @@ app.post("/get_return", async (req, res) => {
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
         
-        
+        const store = await StoreModel.findOne({id_store: shop_id})
+        if(store){
+          store.updateOne({dayCount:dayCount})
+        }
         break;
       }
 
