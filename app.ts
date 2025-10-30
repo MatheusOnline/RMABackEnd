@@ -77,7 +77,7 @@ app.post("/generateToken", async (req, res) => {
       shop_id: Number(shop_id),
       partner_id: partner_id,
     };
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -131,38 +131,42 @@ app.post("/get_return", async (req, res) => {
   try {
     const { token, shop_id, days } = req.body;
     const timestamp = Math.floor(Date.now() / 1000);
-   
-    const fifteenDaysAgo = timestamp - days * 24 * 60 * 60;
 
-    const path = "/api/v2/returns/get_return_list";
+    var dayCount = days;
+    for (let i = 1; i <= dayCount; i++) {
 
-    const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
-    const sign = crypto
-      .createHmac("sha256", partner_key)
-      .update(baseString)
-      .digest("hex");
 
-    
-    let allReturns: any[] = [];
-   
+      const fifteenDaysAgo = timestamp - i * 24 * 60 * 60;
+
+      const path = "/api/v2/returns/get_return_list";
+
+      const baseString = `${partner_id}${path}${timestamp}${token}${shop_id}`;
+      const sign = crypto
+        .createHmac("sha256", partner_key)
+        .update(baseString)
+        .digest("hex");
+
+
+      let allReturns: any[] = [];
+
       const params = {
         access_token: token,
         partner_id: String(partner_id),
         shop_id: String(shop_id),
         page_no: "1",
-        page_size: "100", 
+        page_size: "100",
         timestamp: String(timestamp),
         sign,
 
         // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
         create_time_from: String(fifteenDaysAgo),
-       
+
       };
 
       const urlParams = new URLSearchParams(params).toString();
       const url = `${host}${path}?${urlParams}`;
 
-      
+
 
       const response = await fetch(url);
       const data = await response.json() as {
@@ -176,14 +180,19 @@ app.post("/get_return", async (req, res) => {
       }
 
       const returnList = data?.response?.return || [];
-      allReturns.push(...returnList);
+      if(returnList.length > 0){
+        allReturns.push(...returnList);
+        console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+        res.json({ return_list: allReturns });
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+      console.log(i)
+    }
+    
 
-    console.log(url)
-    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
-    res.json({ return_list: allReturns });
-
+    
   } catch (err) {
-    console.error("❌ Erro ao buscar devoluções:", err);
     res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
   }
 });
