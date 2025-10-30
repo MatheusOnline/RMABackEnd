@@ -135,15 +135,19 @@ app.post("/get_return", async (req, res) => {
 
     var dayCount = days;
     let allReturns: any[] = [];
-    var createStore;
 
-    const VerifyStore = await StoreModel.findOne({id_store: shop_id})
-    if(VerifyStore){
-      console.log(VerifyStore)
+    let store = await StoreModel.findOne({ shop_id });
+
+    if(!store){
+      store = new StoreModel({ shop_id, dayCount });
+      await store.save();
+      console.log("🆕 Loja criada no banco:", store.shop_id);
 
     }else{
-      createStore = new StoreModel({shop_id, dayCount});
-      await createStore.save();
+      console.log("✅ Loja já existe:", store.shop_id);;
+      if (store.dayCount) {
+        dayCount = Number(store.dayCount);
+      }
     }
 
    while(true){
@@ -192,10 +196,12 @@ app.post("/get_return", async (req, res) => {
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
         
-        const store = await StoreModel.findOne({id_store: shop_id})
-        if(store){
-          store.updateOne({dayCount:dayCount})
-        }
+         // Atualiza o dayCount no banco de dados
+        await StoreModel.updateOne(
+          { shop_id },
+          { $set: { dayCount: String(dayCount) } }
+        );
+
         break;
       }
 
