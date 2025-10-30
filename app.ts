@@ -133,8 +133,8 @@ app.post("/get_return", async (req, res) => {
     const timestamp = Math.floor(Date.now() / 1000);
 
     var dayCount = days;
-    for (let i = 1; i <= dayCount; i++) {
-      console.log(i)
+   while(true){
+      console.log(dayCount)
 
       const fifteenDaysAgo = timestamp - i * 24 * 60 * 60;
 
@@ -186,6 +186,7 @@ app.post("/get_return", async (req, res) => {
         res.json({ return_list: allReturns });
         break;
       }
+      dayCount++;
       await new Promise((r) => setTimeout(r, 500));
       
     }
