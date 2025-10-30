@@ -204,7 +204,7 @@ app.post("/get_return", async (req, res) => {
 
     res.json({ return_list: allReturns });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao buscar devoluções. Verifique o log do servidor para detalhes do erro da API." });
+    res.status(500).json({ err });
   }
 });
 
