@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import crypto from "crypto";
 
 import { RmaModel } from "./RmaModel";
+import { StoreModel } from "./models/storeModel";
 import mongoose from "mongoose";
 
 const partner_id = 2013259;
@@ -134,9 +135,12 @@ app.post("/get_return", async (req, res) => {
 
     var dayCount = days;
     let allReturns: any[] = [];
-   while(true){
-      console.log(dayCount)
 
+    const store = await StoreModel.findOne({ id_store: shop_id });
+    if(store){
+      dayCount = store.dayCount;
+    }
+   while(true){
       const fifteenDaysAgo = timestamp - dayCount * 24 * 60 * 60;
 
       const path = "/api/v2/returns/get_return_list";
@@ -146,9 +150,6 @@ app.post("/get_return", async (req, res) => {
         .createHmac("sha256", partner_key)
         .update(baseString)
         .digest("hex");
-
-
-      
 
       const params = {
         access_token: token,
@@ -185,11 +186,19 @@ app.post("/get_return", async (req, res) => {
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
         
+        if(!store){
+          const NewStore = await StoreModel.create({shop_id, dayCount})
+
+          console.log("loja salva")
+        }
+
         break;
       }
+
+      
       dayCount++;
+      if (dayCount > 150) break;
       await new Promise((r) => setTimeout(r, 500));
-      console.log("+1 loop")
     }
     
 
