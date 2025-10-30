@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import crypto from "crypto";
+import crypto, { verify } from "crypto";
 
 import { RmaModel } from "./RmaModel";
 import { StoreModel } from "./models/storeModel";
@@ -135,9 +135,16 @@ app.post("/get_return", async (req, res) => {
 
     var dayCount = days;
     let allReturns: any[] = [];
-    
+    var createStore;
+
     const VerifyStore = await StoreModel.findOne({id_store: shop_id})
-    console.log(VerifyStore)
+    if(VerifyStore){
+      console.log(VerifyStore)
+
+    }else{
+      createStore = new StoreModel({shop_id, dayCount});
+      await createStore.save();
+    }
 
    while(true){
       const fifteenDaysAgo = timestamp - dayCount * 24 * 60 * 60;
@@ -184,6 +191,8 @@ app.post("/get_return", async (req, res) => {
       if(returnList.length > 0){
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+        
+        
         break;
       }
 

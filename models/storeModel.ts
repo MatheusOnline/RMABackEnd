@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const storeSchema = new mongoose.Schema({
-    id_store: {type: String, required: true},
+    shop_id: {type: String, required: true},
     dayCount: {type: String}
 })
 
