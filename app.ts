@@ -136,7 +136,7 @@ app.post("/get_return", async (req, res) => {
    while(true){
       console.log(dayCount)
 
-      const fifteenDaysAgo = timestamp - i * 24 * 60 * 60;
+      const fifteenDaysAgo = timestamp - dayCount * 24 * 60 * 60;
 
       const path = "/api/v2/returns/get_return_list";
 
