@@ -208,4 +208,19 @@ app.post("/get_return", async (req, res) => {
   }
 });
 
+//====================//
+//  ROTAS DE TESTES   //
+//====================//
+
+app.get("/stores", async (req, res) => {
+  try {
+    const rmas = await StoreModel.find();
+
+    res.send(rmas)
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).send("Erro ao buscar RMAs");
+  }
+});
 app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
