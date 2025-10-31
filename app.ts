@@ -130,10 +130,10 @@ interface ShopeeReturnsResponse {
 
 app.post("/get_return", async (req, res) => {
   try {
-    const { token, shop_id, days } = req.body;
+    const { token, shop_id } = req.body;
     const timestamp = Math.floor(Date.now() / 1000);
 
-    var dayCount = days;
+    var dayCount = 1;
     let allReturns: any[] = [];
 
     let store = await StoreModel.findOne({ shop_id });
