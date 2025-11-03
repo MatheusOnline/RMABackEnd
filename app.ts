@@ -1,10 +1,11 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import crypto, { verify } from "crypto";
+import crypto from "crypto";
 
 import { RmaModel } from "./RmaModel";
 import { StoreModel } from "./models/storeModel";
+import { ReturnModel } from "./models/returnModel";
 import mongoose from "mongoose";
 
 const partner_id = 2013259;
@@ -141,10 +142,8 @@ app.post("/get_return", async (req, res) => {
     if(!store){
       store = new StoreModel({ shop_id, dayCount });
       await store.save();
-      console.log("🆕 Loja criada no banco:", store.shop_id);
 
     }else{
-      console.log("✅ Loja já existe:", store.shop_id);;
       if (store.dayCount) {
         dayCount = Number(store.dayCount);
       }
@@ -170,7 +169,7 @@ app.post("/get_return", async (req, res) => {
         timestamp: String(timestamp),
         sign,
 
-        // MUDANÇA CRÍTICA: Trocar de 'create_time' para 'update_time'
+        
         create_time_from: String(fifteenDaysAgo),
 
       };
@@ -193,15 +192,49 @@ app.post("/get_return", async (req, res) => {
 
       const returnList = data?.response?.return || [];
       if(returnList.length > 0){
+        
+        //========VAI SALVAR AS DEVOULUCOES NO BANCO=========//
         allReturns.push(...returnList);
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
+        for(const ret of allReturns){
+          try{
+            await ReturnModel.create({
+              shop_id:shop_id,
+              return_sn: ret.return_sn,
+              order_sn: ret.order_sn,
+              tracking_number: ret.tracking_number,
+              status: ret.status,
+              reason: ret.reason,
+              text_reason: ret.text_reason,
+              create_time: ret.create_time,
+              item:{
+                images: ret.images,
+                item_id: ret.item_id,
+                item_price: ret.item_price,
+                amount: ret.amount,
+                name: ret.name
+              },
+              user:{
+                username: ret.username,
+                portrait: ret.portrait
+              },
+              buyerVideos:{
+                thumbnail_url: ret.thumbnail_url,
+                video_url: ret.video_url
+              }
+            }) 
+          }catch(erro){
+            res.json(erro)
+          }
+        }
         
-         // Atualiza o dayCount no banco de dados
         await StoreModel.updateOne(
           { shop_id },
           { $set: { dayCount: String(dayCount) } }
         );
 
+        const listReturns = await ReturnModel.find({ shop_id: shop_id });
+        res.json(listReturns);
         break;
       }
 
