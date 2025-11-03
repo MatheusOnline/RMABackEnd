@@ -208,11 +208,11 @@ app.post("/get_return", async (req, res) => {
               text_reason: ret.text_reason,
               create_time: ret.create_time,
               item:{
-                images: ret.item.images,
-                item_id: ret.item.item_id,
-                item_price: ret.item.item_price,
-                amount: ret.item.amount,
-                name: ret.item.name
+                images: ret.item[0].images,
+                item_id: ret.item[0].item_id,
+                item_price: ret.item[0].item_price,
+                amount: ret.item.amount[0],
+                name: ret.item.name[0]
               },
               user:{
                 username: ret.user.username,
