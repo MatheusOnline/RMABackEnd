@@ -212,7 +212,7 @@ app.post("/get_return", async (req, res) => {
               order_sn: ret.order_sn,
               tracking_number: ret.tracking_number,
               status: ret.status || '',
-              reason: ret.text_reason || '',
+              reason: ret.reason || '',
               text_reason: ret.text_reason || '',
               create_time: ret.create_time,
               item: ret.item?.map((i:ShopeeItem) => ({
@@ -266,6 +266,17 @@ app.get("/stores", async (req, res) => {
     const rmas = await ReturnModel.find();
 
     res.send(rmas)
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).send("Erro ao buscar RMAs");
+  }
+});
+app.get("/ClearReturns", async (req, res) => {
+  try {
+    await ReturnModel.deleteMany({ });
+
+    res.send("deletado")
   } catch (err) {
     console.error(err);
 
