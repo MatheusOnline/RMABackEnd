@@ -25,7 +25,7 @@ const returnSchema = new mongoose.Schema({
     tracking_number: {type: String, required: false},
     status: {type: String, required: true},
     reason: {type: String, required: true},
-    text_reason: {type: String, required: true},
+    text_reason: {type: String, required: false},
     create_time: {type: String, required: true},
 
     buyerVideos: buyerVideosSchemas,
