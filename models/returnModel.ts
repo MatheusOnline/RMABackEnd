@@ -11,12 +11,12 @@ const userSchema = new mongoose.Schema({
 })
 
 const itemSchema = new mongoose.Schema({
-    images: {type: String, required: true},
-    item_id: {type: String, required:true},
-    item_price: {type: String, required: true},
-    amount: {type: String, required: true},
-    name: {type: String, required: true}
-})
+    images: { type: [String], required: true }, // array de strings
+    item_id: { type: String, required: true },
+    item_price: { type: String, required: true },
+    amount: { type: String, required: true },
+    name: { type: String, required: true }
+});
 
 const returnSchema = new mongoose.Schema({
     shop_id:{type: String, required: true},
@@ -30,7 +30,7 @@ const returnSchema = new mongoose.Schema({
 
     buyerVideos: buyerVideosSchemas,
     user: userSchema,
-    item: itemSchema
+    item: { type: [itemSchema], required: true },
 
 })
 
