@@ -232,9 +232,6 @@ app.post("/get_return", async (req, res) => {
           { shop_id },
           { $set: { dayCount: String(dayCount) } }
         );
-
-        const listReturns = await ReturnModel.find({ shop_id: shop_id });
-        res.json(listReturns);
         break;
       }
 
@@ -245,7 +242,8 @@ app.post("/get_return", async (req, res) => {
     }
     
 
-    res.json({ return_list: allReturns });
+   const listReturns = await ReturnModel.find({ shop_id: shop_id });
+    res.json({success: true, return_list: listReturns});
   } catch (err) {
     res.status(500).json({ err });
   }
