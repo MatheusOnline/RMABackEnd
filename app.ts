@@ -255,7 +255,7 @@ app.post("/get_return", async (req, res) => {
 
 app.get("/stores", async (req, res) => {
   try {
-    const rmas = await StoreModel.find();
+    const rmas = await ReturnModel.find();
 
     res.send(rmas)
   } catch (err) {
