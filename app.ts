@@ -208,15 +208,15 @@ app.post("/get_return", async (req, res) => {
               text_reason: ret.text_reason,
               create_time: ret.create_time,
               item:{
-                images: ret.images,
-                item_id: ret.item_id,
-                item_price: ret.item_price,
-                amount: ret.amount,
-                name: ret.name
+                images: ret.item.images,
+                item_id: ret.item.item_id,
+                item_price: ret.item.item_price,
+                amount: ret.item.amount,
+                name: ret.item.name
               },
               user:{
-                username: ret.username,
-                portrait: ret.portrait
+                username: ret.user.username,
+                portrait: ret.user.portrait
               },
               buyerVideos:{
                 thumbnail_url: ret.thumbnail_url,
