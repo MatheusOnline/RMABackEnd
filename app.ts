@@ -212,7 +212,7 @@ app.post("/get_return", async (req, res) => {
               order_sn: ret.order_sn,
               tracking_number: ret.tracking_number,
               status: ret.status,
-              reason: ret.reason,
+              reason: ret.text_reason || '',
               text_reason: ret.text_reason,
               create_time: ret.create_time,
               item: ret.item?.map((i:ShopeeItem) => ({
