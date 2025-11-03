@@ -224,7 +224,7 @@ app.post("/get_return", async (req, res) => {
               }
             }) 
           }catch(erro){
-            res.json(erro)
+            res.json("Error na hora de salvar no banco:" + erro )
           }
         }
         
