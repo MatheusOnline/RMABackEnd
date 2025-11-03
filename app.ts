@@ -129,6 +129,14 @@ interface ShopeeReturnsResponse {
   // outros campos que a API retorna
 }
 
+
+interface ShopeeItem {
+  images?: string[];
+  item_id?: number;
+  item_price?: number;
+  amount?: number;
+  name?: string;
+}
 app.post("/get_return", async (req, res) => {
   try {
     const { token, shop_id } = req.body;
@@ -207,7 +215,7 @@ app.post("/get_return", async (req, res) => {
               reason: ret.reason,
               text_reason: ret.text_reason,
               create_time: ret.create_time,
-              item: ret.item?.map(i => ({
+              item: ret.item?.map((i:ShopeeItem) => ({
                 images: i.images || [],
                 item_id: i.item_id || 0,
                 item_price: i.item_price || 0,
