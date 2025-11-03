@@ -207,13 +207,13 @@ app.post("/get_return", async (req, res) => {
               reason: ret.reason,
               text_reason: ret.text_reason,
               create_time: ret.create_time,
-              item:{
-                images: ret.item[0].images,
-                item_id: ret.item[0].item_id,
-                item_price: ret.item[0].item_price,
-                amount: ret.item.amount[0],
-                name: ret.item.name[0]
-              },
+              item: ret.item?.map(i => ({
+                images: i.images || [],
+                item_id: i.item_id || 0,
+                item_price: i.item_price || 0,
+                amount: i.amount || 1,
+                name: i.name || 'unknown'
+              })) || [],
               user:{
                 username: ret.user.username,
                 portrait: ret.user.portrait
