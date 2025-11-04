@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import crypto from "crypto";
+import crypto, { verify } from "crypto";
 
 import { RmaModel } from "./RmaModel";
 import { StoreModel } from "./models/storeModel";
@@ -206,31 +206,36 @@ app.post("/get_return", async (req, res) => {
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
         for(const ret of allReturns){
           try{
-            await ReturnModel.create({
-              shop_id:shop_id,
-              return_sn: ret.return_sn,
-              order_sn: ret.order_sn,
-              tracking_number: ret.tracking_number,
-              status: ret.status || '',
-              reason: ret.reason || '',
-              text_reason: ret.text_reason || '',
-              create_time: ret.create_time,
-              item: ret.item?.map((i:ShopeeItem) => ({
-                images: i.images || [],
-                item_id: i.item_id || 0,
-                item_price: i.item_price || 0,
-                amount: i.amount || 1,
-                name: i.name || 'unknown'
-              })) || [],
-              user:{
-                username: ret.user.username,
-                portrait: ret.user.portrait
-              },
-              buyerVideos:{
-                thumbnail_url: ret.thumbnail_url,
-                video_url: ret.video_url
-              }
-            }) 
+            const verify = await ReturnModel.find({ return_sn: ret.return_sn });
+            if(verify)
+            {
+
+              await ReturnModel.create({
+                shop_id:shop_id,
+                return_sn: ret.return_sn,
+                order_sn: ret.order_sn,
+                tracking_number: ret.tracking_number,
+                status: ret.status || '',
+                reason: ret.reason || '',
+                text_reason: ret.text_reason || '',
+                create_time: ret.create_time,
+                item: ret.item?.map((i:ShopeeItem) => ({
+                  images: i.images || [],
+                  item_id: i.item_id || 0,
+                  item_price: i.item_price || 0,
+                  amount: i.amount || 1,
+                  name: i.name || 'unknown'
+                })) || [],
+                user:{
+                  username: ret.user.username,
+                  portrait: ret.user.portrait
+                },
+                buyerVideos:{
+                  thumbnail_url: ret.thumbnail_url,
+                  video_url: ret.video_url
+                }
+              }) 
+            }
           }catch(erro){
             res.json("Error na hora de salvar no banco:" + erro )
           }
