@@ -1,12 +1,16 @@
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
-import crypto, { verify } from "crypto";
-
-import { RmaModel } from "./RmaModel";
+import crypto from "crypto";
 import { StoreModel } from "./models/storeModel";
 import { ReturnModel } from "./models/returnModel";
 import mongoose from "mongoose";
+
+//=======IMPORTANDO ROTAS========//
+import returnRoutes from "./router/Returns"
+import tokenRoutes from "./router/Tokens"
+
+
 
 const partner_id = 2013259;
 const partner_key = "shpk79414a436a4a64585553496764445948414c66555372416945654d7a424a";
@@ -25,38 +29,9 @@ mongoose.connect(uri)
   .catch(err => console.error("❌ Erro ao conectar no MongoDB:", err));
 
 
-// Recebe RMA via POST e salva no MongoDB
-app.post("/rma", async (req, res) => {
-  try {
-    const { id, motivo, data, status } = req.body;
+app.use(returnRoutes)
+app.use("/token", tokenRoutes)
 
-    if (!id || !motivo) {
-      return res.status(400).send("Dados incompletos");
-    }
-
-    const novoRma = new RmaModel({ id, motivo, data, status });
-    await novoRma.save();
-
-    console.log("RMA salvo:", novoRma);
-    res.status(201).json({ message: "RMA cadastrado com sucesso!", rma: novoRma });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Erro ao salvar RMA");
-  }
-});
-
-// Retorna todos os RMAs
-app.get("/rma", async (req, res) => {
-  try {
-    const rmas = await RmaModel.find();
-
-    res.status(201).json({ "returns": rmas })
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).send("Erro ao buscar RMAs");
-  }
-});
 
 app.post("/generateToken", async (req, res) => {
   try {
@@ -122,11 +97,6 @@ app.post("/get_profile", async (req, res) => {
 interface ShopeeReturn {
   return_id: number;
   // outros campos que quiser
-}
-
-interface ShopeeReturnsResponse {
-  returns?: ShopeeReturn[];
-  // outros campos que a API retorna
 }
 
 
