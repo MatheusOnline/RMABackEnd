@@ -207,7 +207,7 @@ app.post("/get_return", async (req, res) => {
         for(const ret of allReturns){
           try{
             const verify = await ReturnModel.find({ return_sn: ret.return_sn });
-            if(verify)
+            if(!verify)
             {
 
               await ReturnModel.create({
