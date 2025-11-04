@@ -206,7 +206,7 @@ app.post("/get_return", async (req, res) => {
         console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
         for(const ret of allReturns){
           try{
-            const verify = await ReturnModel.find({ return_sn: ret.return_sn });
+            const verify = await ReturnModel.findOne({ return_sn: ret.return_sn });
             if(!verify)
             {
 
