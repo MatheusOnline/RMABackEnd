@@ -1,7 +1,11 @@
 import express from "express"
-import Timestamp from "../utils/timestamp";
-import Sign from "../utils/sign";
 import dotenv from "dotenv"
+
+
+//======FUNCOES========//
+import Sign from "../utils/sign";
+import Timestamp from "../utils/timestamp";
+import CreateShop from "../utils/dbUtius/createShop";
 
 const router = express.Router();
 dotenv.config();
@@ -40,6 +44,17 @@ router.post("/generate", async (req,res) =>{
         });
 
         const data = await response.json();
+
+        const shop = await CreateShop({shop_id})
+        
+        if(shop)
+        {
+            (shop as any).access_token = data.access_token;
+            (shop as any).refresh_token = data.refresh_token;
+            await (shop as any).save()
+        }
+
+        
         return res.status(200).json(data);
     }catch(error){
         return res.status(500).json({error:"Erro interno ao gerar token"})

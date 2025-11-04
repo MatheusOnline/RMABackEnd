@@ -33,41 +33,6 @@ app.use(returnRoutes)
 app.use("/token", tokenRoutes)
 
 
-app.post("/generateToken", async (req, res) => {
-  try {
-    const { code, shop_id } = req.body;
-
-    if (!code || !shop_id)
-      return res.status(400).json({ error: "code e shop_id são obrigatórios" });
-
-    const ts = Math.floor(Date.now() / 1000);
-    const path = "/api/v2/auth/token/get";
-    const baseStr = `${partner_id}${path}${ts}`;
-    const sign = crypto
-      .createHmac("sha256", partner_key)
-      .update(baseStr)
-      .digest("hex");
-
-    const url = `${host}${path}?partner_id=${partner_id}&timestamp=${ts}&sign=${sign}`;
-    const body = {
-      code,
-      shop_id: Number(shop_id),
-      partner_id: partner_id,
-    };
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Erro ao gerar o token");
-  }
-});
 
 app.post("/get_profile", async (req, res) => {
   const { token, shop_id } = req.body; // <-- era req.query
