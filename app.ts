@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import crypto from "crypto";
 import { StoreModel } from "./models/storeModel";
 import { ReturnModel } from "./models/returnModel";
+import { ShopModel } from "./models/shopModel";
 import mongoose from "mongoose";
 
 //=======IMPORTANDO ROTAS========//
@@ -203,7 +204,7 @@ app.post("/get_return", async (req, res) => {
 
 app.get("/stores", async (req, res) => {
   try {
-    const rmas = await ReturnModel.find();
+    const rmas = await ShopModel.find();
 
     res.send(rmas)
   } catch (err) {
