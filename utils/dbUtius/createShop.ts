@@ -9,7 +9,7 @@ async function CreateShop({ shop_id }: ShopFunction) {
         let store = await ShopModel.findOne({ shop_id });
 
         if (!store) {
-            store = await ShopModel.create({ shop_id });
+            store = await ShopModel.create({ shop_id, dayCount:"1" });
         }
 
         return store; // sempre retorna um documento Mongoose válido

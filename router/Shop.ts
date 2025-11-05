@@ -1,8 +1,8 @@
 import express from "express"
 import dotenv from "dotenv"
+import crypto from "crypto";
 
 //======FUNCOES========//
-import Sign from "../utils/sign";
 import Timestamp from "../utils/timestamp";
 import CreateShop from "../utils/dbUtius/createShop";
 
@@ -13,6 +13,35 @@ dotenv.config();
 //======VARIAVEIS======//
 const partner_id = process.env.PARTNER_ID;
 const host = process.env.HOST;
+
+
+interface SignFunctions {
+  path: string;
+  ts: Number;
+  access_token: Number;
+  shop_id: Number;
+}
+
+
+//=======FUNÇAO PARA GERAR O SING=======//
+function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
+
+    const partnerKey = process.env.PARTNER_KEY;
+    if (!partnerKey) {
+        throw new Error("PARTNER_KEY não definida no .env");
+    }
+
+    // monta a base string corretamente
+    const baseStr = `${process.env.PARTNER_ID}${path}${ts}${access_token}${shop_id}`;
+
+    // cria o hash HMAC-SHA256
+    const sign = crypto
+        .createHmac("sha256", partnerKey )
+        .update(baseStr)
+        .digest("hex");
+
+    return sign;
+}
 
 //=======ROUTA PARA BUSCAR OS DADOS DA EMPRESA
 router.post("/datas", async (req, res) =>{
@@ -27,14 +56,16 @@ router.post("/datas", async (req, res) =>{
 
         const path = "/api/v2/shop/get_profile";
         const ts = Timestamp();
-        const sign = Sign({path, ts})
-
-        const shop = await CreateShop(shop_id)
+        
+        const shop = await CreateShop({shop_id})
 
         if(!shop)
             return res.status(500).json({error:"Falha ao buscar a loja"})
 
         const access_token =  (shop as any).access_token
+        
+        const sign = Sign({path, ts, access_token, shop_id})
+
 
         if(!access_token)
             return res.status(500).json({error:"Falha ao buscar o access token"})
@@ -53,7 +84,7 @@ router.post("/datas", async (req, res) =>{
 
 
     }catch(error){
-        return res.status(500).json(error)
+        return res.status(500).json({error:error})
     }
 
 })

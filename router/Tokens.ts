@@ -95,6 +95,7 @@ router.post("/refresh", async(req,res) => {
         const body = {
             shop_id: Number(shop_id),
             refresh_token: shop?.refresh_token,
+            partner_id: Number(partner_id),
         };
 
         const response = await fetch(url, {
@@ -106,11 +107,15 @@ router.post("/refresh", async(req,res) => {
         const data = await response.json();
 
         
+        
         if(shop)
         {
-            (shop as any).access_token = data.access_token;
-            (shop as any).refresh_token = data.refresh_token;
-            await (shop as any).save()
+            if(data.refresh_token && data.access_token)
+            {
+                (shop as any).access_token = data.access_token;
+                (shop as any).refresh_token = data.refresh_token;
+                await (shop as any).save()
+            }
         }
 
         return res.status(200).json(data)
