@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 //=======IMPORTANDO ROTAS========//
 import returnRoutes from "./router/Returns"
 import tokenRoutes from "./router/Tokens"
-
+import shopRoutes from "./router/Shop"
 
 
 const partner_id = 2013259;
@@ -32,7 +32,7 @@ mongoose.connect(uri)
 
 app.use(returnRoutes)
 app.use("/token", tokenRoutes)
-
+app.use("/shop", shopRoutes)
 
 
 app.post("/get_profile", async (req, res) => {

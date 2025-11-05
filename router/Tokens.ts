@@ -40,7 +40,7 @@ router.post("/generate", async (req,res) =>{
         const body = {
             code,
             shop_id: Number(shop_id),
-            partner_id: partner_id,
+            partner_id: Number(partner_id),
         };
 
         const response = await fetch(url, {
@@ -53,11 +53,12 @@ router.post("/generate", async (req,res) =>{
 
         const shop = await CreateShop({shop_id})
         
-        if(shop)
-        {
-            (shop as any).access_token = data.access_token;
-            (shop as any).refresh_token = data.refresh_token;
-            await (shop as any).save()
+        if (shop instanceof ShopModel) {
+            shop.access_token = data.access_token;
+            shop.refresh_token = data.refresh_token;
+            await shop.save();
+        } else {
+            console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
         }
 
         
