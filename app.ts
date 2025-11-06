@@ -38,7 +38,7 @@ app.use("/shop", shopRoutes)
 
 app.get("/stores", async (req, res) => {
   try {
-    const rmas = await ShopModel.find();
+    const rmas = await ReturnModel.find();
 
     res.send(rmas)
   } catch (err) {
@@ -50,6 +50,8 @@ app.get("/stores", async (req, res) => {
 app.get("/ClearReturns", async (req, res) => {
   try {
     await ReturnModel.deleteMany({ });
+
+    
 
     res.send("deletado")
   } catch (err) {

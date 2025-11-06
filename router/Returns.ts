@@ -126,4 +126,20 @@ router.post("/get", async (req, res) =>{
 
 })
 
+
+router.post("/seach", async (req, res) =>{
+    const { return_sn} = req.body
+
+    try{
+        const data = await ReturnModel.findOne({return_sn})
+
+        if(!data)
+            res.status(200).json({error:"Essa devoluçao nao existe", succeso:false})
+        
+        res.status(200).json({data:data, succeso:true})
+    }
+    catch(error){
+        res.status(500).json(error)
+    }
+})
 export default router;
