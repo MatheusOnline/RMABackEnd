@@ -95,8 +95,6 @@ router.post("/get", async (req, res) =>{
 
             if(returnList.length > 0){
                 const result = await CreateReturn(shop_id, returnList);
-            
-    
                 break;
             }
             
@@ -108,7 +106,10 @@ router.post("/get", async (req, res) =>{
             } else {
                 console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
             }
-
+            if(days > 150){
+                return res.status(500).json({success: false, error: "Nenhuma devoluçao encontrada"})
+                break;
+            }
             days++;
             await new Promise((r) => setTimeout(r, 500));
         }
