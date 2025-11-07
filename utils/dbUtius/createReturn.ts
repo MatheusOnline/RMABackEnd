@@ -7,6 +7,11 @@ interface ShopeeItem {
   amount?: number;
   name?: string;
 }
+interface ShopeeBuyerVideo {
+  thumbnail_url?: string;
+  video_url?: string;
+}
+
 
 interface ShopeeReturn {
   return_sn: string;
@@ -21,8 +26,7 @@ interface ShopeeReturn {
     username?: string;
     portrait?: string;
   };
-  thumbnail_url?: string;
-  video_url?: string;
+  buyer_videos?: ShopeeBuyerVideo[]; 
 }
 
 async function CreateReturn(shop_id: string, returnList: ShopeeReturn[]) {
@@ -54,11 +58,13 @@ async function CreateReturn(shop_id: string, returnList: ShopeeReturn[]) {
             username: ret.user?.username || 'unknown',
             portrait: ret.user?.portrait || '',
           },
-          buyerVideos: {
-            thumbnail_url: ret.thumbnail_url || '',
-            video_url: ret.video_url || '',
-          },
+           buyer_videos:
+            ret.buyer_videos?.map((video) => ({
+              thumbnail_url: video.thumbnail_url || "",
+              video_url: video.video_url || "",
+            })) || [], // 👈 agora salva corretamente como array
         });
+        
       }
     }
 

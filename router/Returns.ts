@@ -51,7 +51,7 @@ router.post("/get", async (req, res) =>{
     try{
         const {shop_id} = req.body;
         let days = 1;
-
+        let listReturns;
         if(!shop_id)
             return res.status(400).json({error:"shop_id não pode ser nulo"})
 
@@ -64,7 +64,7 @@ router.post("/get", async (req, res) =>{
 
         while(true){
             const fifteenDaysAgo = Timestamp() - days * 24 * 60 * 60;
-
+            
             const path = "/api/v2/returns/get_return_list";
             const ts = Timestamp()
             const access_token = (shop as any).access_token
@@ -90,7 +90,8 @@ router.post("/get", async (req, res) =>{
                 error?: string;
                 message?: string;
             };
-
+            
+            //listReturns = data?.response?.return || []
             const returnList = data?.response?.return || [];
 
             if(returnList.length > 0){
@@ -116,7 +117,7 @@ router.post("/get", async (req, res) =>{
         
         
         
-        let listReturns = await ReturnModel.find({ shop_id: shop_id });
+        listReturns = await ReturnModel.find({ shop_id: shop_id });
       
         res.json({success: true, return_list: listReturns});
 

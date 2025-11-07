@@ -28,7 +28,7 @@ const returnSchema = new mongoose.Schema({
     text_reason: {type: String, required: false},
     create_time: {type: String, required: true},
 
-    buyerVideos: buyerVideosSchemas,
+    buyer_videos: [buyerVideosSchemas],
     user: userSchema,
     item: { type: [itemSchema], required: true },
 
