@@ -144,4 +144,43 @@ router.post("/seach", async (req, res) =>{
         res.status(500).json(error)
     }
 })
+
+router.post("/tracking", async (req, res) =>{
+    const { return_sn, shop_id} = req.body
+    try {
+    console.log("Body recebido:", req.body);
+
+    const shop = await CreateShop({ shop_id });
+    console.log("Shop retornado:", shop);
+
+    const path = "/api/v2/returns/get_reverse_tracking_info";
+    
+    const ts = Timestamp();
+    const access_token = (shop as any).access_token
+    const sign = Sign({path, ts, access_token, shop_id})
+
+
+    const params = {
+        partner_id: String(partner_id),
+        sign,
+        timestamp: String(ts),
+        shop_id: String(shop_id),
+        access_token,
+        return_sn
+    };
+
+    const urlParams = new URLSearchParams(params).toString();
+    const url = `${host}${path}?${urlParams}`;
+    console.log("URL:", url);
+
+    const response = await fetch(url);
+    const text = await response.json();
+    
+
+    res.status(response.ok ? 200 : 400).json(text);
+} catch (err) {
+    console.error("Erro:", err);
+    res.status(500).json({ error: err, stack: err });
+}
+})
 export default router;
