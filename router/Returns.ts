@@ -174,10 +174,10 @@ router.post("/tracking", async (req, res) =>{
     console.log("URL:", url);
 
     const response = await fetch(url);
-    const text = await response.json();
+    const datas = await response.json();
     
 
-    res.status(response.ok ? 200 : 400).json(text);
+    res.status(200).json({datas:datas, success: true});
 } catch (err) {
     console.error("Erro:", err);
     res.status(500).json({ error: err, stack: err });
