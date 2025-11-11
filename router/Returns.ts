@@ -108,7 +108,7 @@ router.post("/get", async (req, res) =>{
                 console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
             }
             if(days > 150){
-                return res.status(500).json({success: false, error: "Nenhuma devoluçao encontrada"})
+                return res.status(500).json({success: true, error: "Nenhuma devoluçao encontrada"})
                 break;
             }
             days++;
