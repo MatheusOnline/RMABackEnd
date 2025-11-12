@@ -38,7 +38,7 @@ app.use("/shop", shopRoutes)
 
 app.get("/stores", async (req, res) => {
   try {
-    const rmas = await ReturnModel.find();
+    const rmas = await ShopModel.find();
 
     res.send(rmas)
   } catch (err) {

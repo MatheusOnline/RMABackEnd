@@ -9,6 +9,7 @@ import { ReturnModel } from "../models/returnModel";
 import CreateShop from "../utils/dbUtius/createShop";
 import CreateReturn from "../utils/dbUtius/createReturn";
 import Timestamp from "../utils/timestamp";
+import refreshAccessToken from "../utils/refreshAccessToken";
 import { ShopModel } from "../models/shopModel";
 //====CONFIGURACOES====//
 const router = express.Router();
@@ -47,86 +48,88 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
 }
 
 
-router.post("/get", async (req, res) =>{
-    try{
-        const {shop_id} = req.body;
-        let days = 1;
-        let listReturns;
-        if(!shop_id)
-            return res.status(400).json({error:"shop_id não pode ser nulo"})
+router.post("/get", async (req, res) => {
+    try {
+        const { shop_id } = req.body;
+        if (!shop_id)
+            return res.status(400).json({ error: "shop_id não pode ser nulo" });
 
-        const shop = await CreateShop({shop_id})
-        
-        if(!shop)
-            return res.status(400).json({error:"Erro na hora de pegar a loja"})
-        else
-            days = Number(shop.dayCount);
+        const days = 4; // últimos 5 dias
+        const shop = await CreateShop({ shop_id });
+        if (!shop)
+            return res.status(400).json({ error: "Erro na hora de pegar a loja" });
 
-        while(true){
-            const fifteenDaysAgo = Timestamp() - days * 24 * 60 * 60;
-            
-            const path = "/api/v2/returns/get_return_list";
-            const ts = Timestamp()
-            const access_token = (shop as any).access_token
-            const sign = Sign({path, ts, access_token, shop_id})
+        // 🕒 timestamps em segundos
+        const ts = Math.floor(Date.now() / 1000);
+        const fiveDaysAgo = ts - days * 24 * 60 * 60;
 
-            const params = {
-                access_token: access_token,
-                partner_id: String(partner_id),
-                shop_id: String(shop_id),
-                page_no: "1",
-                page_size: "100",
-                timestamp: String(ts),
-                sign,
-                create_time_from: String(fifteenDaysAgo),
-            };
+        const path = "/api/v2/returns/get_return_list";
+        let access_token = (shop as any).access_token;
+        let sign = Sign({ path, ts, access_token, shop_id });
 
-            const urlParams = new URLSearchParams(params).toString();
-            const url = `${host}${path}?${urlParams}`;
+        const params = {
+            access_token,
+            partner_id: String(partner_id),
+            shop_id: String(shop_id),
+            page_no: "1",
+            page_size: "50",
+            timestamp: String(ts),
+            sign,
+            create_time_from: String(fiveDaysAgo),
+            create_time_to: String(ts),
+        };
 
+        const urlParams = new URLSearchParams(params).toString();
+        let url = `${host}${path}?${urlParams}`;
+
+        let data;
+        try {
             const response = await fetch(url);
-            const data = await response.json() as {
-                response?: { return?: any[]; has_more?: boolean };
-                error?: string;
-                message?: string;
-            };
-            
-            //listReturns = data?.response?.return || []
-            const returnList = data?.response?.return || [];
+            data = await response.json();
 
-            if(returnList.length > 0){
-                const result = await CreateReturn(shop_id, returnList);
-                break;
-            }
-            
-        
+            // Se o token for inválido, renova e tenta novamente
+            if (data.error === "invalid_acceess_token") {
+                console.warn("Token inválido, tentando renovar...");
 
-            if (shop instanceof ShopModel) {
-                shop.dayCount = String(days);
-                await shop.save();
-            } else {
-                console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
+                const newToken = await refreshAccessToken(shop_id);
+                if (!newToken) {
+                    return res.status(401).json({ error: "Falha ao renovar token" });
+                }
+
+                const newSign = Sign({ path, ts, access_token: newToken, shop_id });
+                const newParams = new URLSearchParams({
+                    ...params,
+                    access_token: newToken,
+                    sign: newSign,
+                }).toString();
+
+                url = `${host}${path}?${newParams}`;
+                const retryResponse = await fetch(url);
+                data = await retryResponse.json();
             }
-            if(days > 150){
-                return res.status(500).json({success: true, error: "Nenhuma devoluçao encontrada"})
-                break;
-            }
-            days++;
-            await new Promise((r) => setTimeout(r, 500));
+
+        } catch (err) {
+            console.error("Erro na requisição:", err);
+            return res.status(500).json({ error: "Erro ao buscar devoluções" });
         }
-        
-        
-        
-        listReturns = await ReturnModel.find({ shop_id: shop_id });
-      
-        res.json({success: true, return_list: listReturns});
 
+        console.log("Resposta Shopee:", data);
 
-    }catch(error){
-        return res.status(500).json({error: error})
+        const returnList = data?.response?.return || [];
+
+        if (returnList.length > 0) {
+            await CreateReturn(shop_id, returnList);
+        }
+
+        const listReturns = await ReturnModel.find({ shop_id });
+        return res.json({ success: true, return_list: listReturns });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error });
     }
+});
 
-})
 
 
 router.post("/seach", async (req, res) =>{
