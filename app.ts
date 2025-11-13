@@ -47,6 +47,18 @@ app.get("/stores", async (req, res) => {
     res.status(500).send("Erro ao buscar RMAs");
   }
 });
+
+app.get("/returns", async (req, res) => {
+  try {
+    const rmas = await ReturnModel.find();
+
+    res.send(rmas)
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).send("Erro ao buscar RMAs");
+  }
+});
 app.get("/ClearReturns", async (req, res) => {
   try {
     await ReturnModel.deleteMany({ });

@@ -5,7 +5,7 @@ import crypto from "crypto";
 //======FUNCOES========//
 import Timestamp from "../utils/timestamp";
 import CreateShop from "../utils/dbUtius/createShop";
-
+import refreshAccessToken from "../utils/refreshAccessToken";
 //====CONFIGURACOES====//
 const router = express.Router();
 dotenv.config();
@@ -63,7 +63,6 @@ router.post("/datas", async (req, res) =>{
             return res.status(500).json({error:"Falha ao buscar a loja"})
 
         const access_token =  (shop as any).access_token
-        
         const sign = Sign({path, ts, access_token, shop_id})
 
 
@@ -71,10 +70,23 @@ router.post("/datas", async (req, res) =>{
             return res.status(500).json({error:"Falha ao buscar o access token"})
         
         const url = `${host}${path}?partner_id=${partner_id}&timestamp=${ts}&access_token=${access_token}&shop_id=${shop_id}&sign=${sign}`;
-            
+        
         try {
             const response = await fetch(url);
             const data = await response.json();
+
+            if(data.error === "invalid_acceess_token"){
+                const newToken = await refreshAccessToken(shop_id);
+                if (!newToken) {
+                    return res.status(401).json({ error: "Falha ao renovar token" });
+                }
+            }
+            
+            if (data.response.shop_name) {
+                shop.name = data.response.shop_name;
+            }
+
+            await shop.save();
             return res.status(200).json(data);
 
         }catch (error) {

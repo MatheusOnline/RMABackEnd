@@ -4,6 +4,7 @@ import crypto from "crypto";
 
 //=======SCHEMA=======//
 import { ReturnModel } from "../models/returnModel";
+import { FinishModel } from "../models/finishModel";
 
 //======FUNCOES========//
 import CreateShop from "../utils/dbUtius/createShop";
@@ -11,6 +12,7 @@ import CreateReturn from "../utils/dbUtius/createReturn";
 import Timestamp from "../utils/timestamp";
 import refreshAccessToken from "../utils/refreshAccessToken";
 import { ShopModel } from "../models/shopModel";
+import  downloadImage from "../utils/downloadImage";
 //====CONFIGURACOES====//
 const router = express.Router();
 dotenv.config();
@@ -46,7 +48,6 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
 
     return sign;
 }
-
 
 router.post("/get", async (req, res) => {
     try {
@@ -130,8 +131,6 @@ router.post("/get", async (req, res) => {
     }
 });
 
-
-
 router.post("/seach", async (req, res) =>{
     const { return_sn} = req.body
 
@@ -186,4 +185,80 @@ router.post("/tracking", async (req, res) =>{
     res.status(500).json({ error: err, stack: err });
 }
 })
+
+router.post("/scan", async (req, res) =>{
+    const { tracking_id } = req.body
+    try{
+
+
+        // Pega os dados da devoluçoes
+        const returnDatas = await ReturnModel.findOne({tracking_number: tracking_id})
+        if(!returnDatas)
+            return res.status(400).json({success: false, message: "Nao achou nenhuma devoluçao "})
+
+        // Pega o nome da loja 
+        const shop = await ShopModel.findOne({shop_id: returnDatas.shop_id})
+        if(!shop)
+            return res.status(400).json({success: false, message: "Nao achou a loja"})
+        
+        
+
+        // Retorna os dados para o front end
+        return res.status(200).json({success: true, message: "Devolucao encontrada", data: returnDatas, shop_name: shop.name})
+    }catch(error){
+        return res.status(500).json({success: false, message: error})
+    }
+})
+
+import multer from "multer";
+import path from "path";
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // pasta onde salva
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // nome único
+  },
+});
+
+const upload = multer({ storage });
+
+
+router.post("/finish", upload.single("imagen"), async (req, res) =>{
+    const {return_sn, observation, imagen} = req.body 
+    try{
+        const returnDatas = await ReturnModel.findOne({return_sn})
+        
+        if(!returnDatas)
+            return res.status(400).json({success: false, message: "Falha em achar a devoluçao"})
+
+        returnDatas.status = "Concluida";
+
+        returnDatas.save();
+        
+        const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+        try{
+            const finish = await FinishModel.create({
+                return_id: returnDatas?.return_sn,
+                observation: observation,
+                imagen: filePath,
+                data_finish: Timestamp()
+                
+            })
+
+            return res.status(200).json({success: true, message: "Devoluçao concluida", data: finish}) 
+        }catch(error){
+            console.log(error)
+            return res.status(500).json({success: false, message: "falha ao concluir"})
+        }
+        
+
+    }catch(error){
+        console.log(error)
+        return res.status(500).json({success: false, message: "erro no servidor"})
+    }
+})
+
 export default router;
