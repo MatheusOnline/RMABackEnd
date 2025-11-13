@@ -11,9 +11,19 @@ import shopRoutes from "./router/Shop"
 
 
 
+import path from "path";
+
+
+
+
+
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+
+// 👉 habilita acesso público à pasta 'uploads'
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const uri = "mongodb+srv://matheus:Cavalo123!@dados.mkmjd.mongodb.net/meuBanco?retryWrites=true&w=majority";
 
