@@ -20,8 +20,7 @@ router.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// Preflight
-router.options("/", cors());
+
 
 
 //======VARIAVEIS======//
