@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv"
 import crypto from "crypto";
-import cors from "cors"
+
 
 
 //=======SCHEMA=======//
@@ -19,12 +19,7 @@ import  downloadImage from "../utils/downloadImage";
 const router = express.Router();
 dotenv.config();
 
-// CORS para todas as rotas deste router
-router.use(cors({
-    origin: "https://rma-controller.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-}));
+
 
 //======VARIAVEIS======//
 const partner_id = process.env.PARTNER_ID;
