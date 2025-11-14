@@ -7,11 +7,11 @@ interface ShopeeItem {
   amount?: number;
   name?: string;
 }
+
 interface ShopeeBuyerVideo {
   thumbnail_url?: string;
   video_url?: string;
 }
-
 
 interface ShopeeReturn {
   return_sn: string;
@@ -26,55 +26,65 @@ interface ShopeeReturn {
     username?: string;
     portrait?: string;
   };
-  buyer_videos?: ShopeeBuyerVideo[]; 
+  buyer_videos?: ShopeeBuyerVideo[];
 }
 
 async function CreateReturn(shop_id: string, returnList: ShopeeReturn[]) {
   try {
-    const allReturns: ShopeeReturn[] = [...returnList];
-    console.log(`✅ Total de devoluções encontradas: ${allReturns.length}`);
 
-    for (const ret of allReturns) {
-      const verify = await ReturnModel.findOne({ return_sn: ret.return_sn });
-      if (!verify) {
-        await ReturnModel.create({
-          shop_id: shop_id,
-          return_sn: ret.return_sn,
-          order_sn: ret.order_sn,
-          tracking_number: ret.tracking_number,
-          status: ret.status || '',
-          reason: ret.reason || '',
-          text_reason: ret.text_reason || '',
-          create_time: ret.create_time,
-          item:
-            ret.item?.map((i: ShopeeItem) => ({
-              images: i.images || [],
-              item_id: i.item_id || 0,
-              item_price: i.item_price || 0,
-              amount: i.amount || 1,
-              name: i.name || 'unknown',
-            })) || [],
-          user: {
-            username: ret.user?.username || 'unknown',
-            portrait: ret.user?.portrait || '',
+    console.log(`🔍 Recebidas ${returnList.length} devoluções.`);
+
+    const operations = returnList.map((ret) => ({
+      updateOne: {
+        filter: { return_sn: ret.return_sn },
+        update: {
+          $setOnInsert: {
+            shop_id,
+            return_sn: ret.return_sn,
+            order_sn: ret.order_sn,
+            tracking_number: ret.tracking_number,
+            status: ret.status || "",
+            reason: ret.reason || "",
+            text_reason: ret.text_reason || "",
+            create_time: ret.create_time,
+            item:
+              ret.item?.map((i) => ({
+                images: i.images || [],
+                item_id: i.item_id || 0,
+                item_price: i.item_price || 0,
+                amount: i.amount || 1,
+                name: i.name || "unknown",
+              })) || [],
+            user: {
+              username: ret.user?.username || "unknown",
+              portrait: ret.user?.portrait || "",
+            },
+            buyer_videos:
+              ret.buyer_videos?.map((v) => ({
+                thumbnail_url: v.thumbnail_url || "",
+                video_url: v.video_url || "",
+              })) || [],
           },
-           buyer_videos:
-            ret.buyer_videos?.map((video) => ({
-              thumbnail_url: video.thumbnail_url || "",
-              video_url: video.video_url || "",
-            })) || [], // 👈 agora salva corretamente como array
-        });
-        
+        },
+        upsert: true
       }
-    }
+    }));
 
-    console.log("✅ Salvamento concluído com sucesso.");
-    return { success: true, count: allReturns.length };
+    const result = await ReturnModel.bulkWrite(operations, { ordered: false });
+
+    console.log("✅ Bulk concluído.");
+    console.log(`➡️ Inseridos: ${result.upsertedCount}`);
+    console.log(`➡️ Já existiam: ${returnList.length - result.upsertedCount}`);
+
+    return {
+      success: true,
+      inserted: result.upsertedCount
+    };
+
   } catch (error) {
-    console.error("❌ Erro ao salvar devoluções:", error);
-    return { success: false, error: error instanceof Error ? error.message : error };
+    console.error("❌ Erro no bulk:", error);
+    return { success: false, error: error };
   }
 }
-
 
 export default CreateReturn;
