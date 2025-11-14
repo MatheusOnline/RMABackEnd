@@ -152,40 +152,41 @@ router.post("/get", async (req, res) => {
             });
         }
 
-        // ===========================
-        // 3. Buscar somente return_sn usando cursor
-        // ===========================
+        // ===========================================
+        // 3. OTIMIZADO: FILTRAR NOVAS DEVOLUÇÕES
+        //    (Substitui o cursor e o Set grande de 2000 itens)
+        // ===========================================
+        
+        // 3.1 Pegar todos os return_sn da resposta da API (máx. 50)
+        const apiSNs = apiReturns.map(ret => ret.return_sn);
 
-        const cursor = ReturnModel.find(
-            { shop_id },
-            { return_sn: 1 }
-        ).cursor();
+        // 3.2 Buscar no MongoDB APENAS aqueles que já existem
+        const existingDocs = await ReturnModel.find(
+            { shop_id, return_sn: { $in: apiSNs } },
+            { return_sn: 1 } // Projeção para buscar só o necessário
+        ).lean();
 
-        const existingSN = new Set();
+        // 3.3 Criar um Set PEQUENO (máx. 50 itens)
+        const existingSN = new Set(existingDocs.map(doc => doc.return_sn));
 
-        for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
-            existingSN.add(doc.return_sn);
-
-            // LIMITADOR DE RAM
-            if (existingSN.size > 2000) break;
-        }
-
-        // ===========================
-        // 4. Filtrar novas sem explodir memória
-        // ===========================
-
-        const newReturns = apiReturns.filter(ret => !existingSN.has(ret.return_sn));
+        // 3.4 Filtrar novas
+        const newReturns = apiReturns
+            .filter(ret => !existingSN.has(ret.return_sn))
+            .map(ret => ({ ...ret, shop_id })); // Adiciona shop_id ao objeto
 
         if (newReturns.length > 0) {
-            await CreateReturn(shop_id, newReturns);
+            // Se CreateReturn for um wrapper para insertOne/Many, use insertMany diretamente para performance
+            // Se precisar das lógicas de CreateReturn, use-o
+            await ReturnModel.insertMany(newReturns);
         }
 
         // ===========================
-        // 5. Buscar lista final limitada (paginada)
+        // 4. Buscar lista final limitada (paginada)
+        //    Recomendado: Projetar campos para reduzir RAM
         // ===========================
         const listReturns = await ReturnModel.find({ shop_id })
             .sort({ create_time: -1 })
-            .limit(200) // reduzido para proteger memória
+            .limit(200) 
             .lean();
 
         return res.json({
@@ -203,7 +204,6 @@ router.post("/get", async (req, res) => {
         });
     }
 });
-
 
 
 //

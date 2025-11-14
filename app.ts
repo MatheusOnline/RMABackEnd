@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { ReturnModel } from "./models/returnModel";
 import { ShopModel } from "./models/shopModel";
+import { FinishModel } from "./models/finishModel";
 import mongoose from "mongoose";
 
 //=======IMPORTANDO ROTAS========//
@@ -73,7 +74,7 @@ app.get("/returns", async (req, res) => {
 });
 app.get("/ClearReturns", async (req, res) => {
   try {
-    await ReturnModel.deleteMany({ });
+    await FinishModel.deleteMany({ });
     
     
 
