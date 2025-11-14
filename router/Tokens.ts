@@ -1,5 +1,6 @@
 import express from "express"
 import dotenv from "dotenv"
+import cors from "cors"
 
 
 //======FUNCOES========//
@@ -11,6 +12,17 @@ import { ShopModel } from "../models/shopModel";
 //====CONFIGURACOES====//
 const router = express.Router();
 dotenv.config();
+
+// CORS para todas as rotas deste router
+router.use(cors({
+    origin: "https://rma-controller.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+// Preflight
+router.options("/", cors());
+
 
 //======VARIAVEIS======//
 const partner_id = process.env.PARTNER_ID;
