@@ -1,8 +1,8 @@
 import express from "express";
 import dotenv from "dotenv"
 import crypto from "crypto";
-import multer from "multer";
-import path from "path";
+
+
 
 //=======SCHEMA=======//
 import { ReturnModel } from "../models/returnModel";
@@ -23,7 +23,7 @@ dotenv.config();
 const partner_id = process.env.PARTNER_ID;
 const host = process.env.HOST;
 
-
+/*
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/"); // pasta onde salva
@@ -35,7 +35,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
+*/
 
 interface SignFunctions {
   path: string;
@@ -290,6 +290,7 @@ router.post("/scan", async (req, res) => {
 // Rota para finalizar a devoluçao 
 // E salvar no banco as informacoes 
 //
+/*
 router.post("/finish", upload.single("imagen"), async (req, res) => {
     const { return_sn, observation } = req.body;
 
@@ -327,5 +328,5 @@ router.post("/finish", upload.single("imagen"), async (req, res) => {
         return res.status(500).json({success: false, error: "Erro no servidor"});
     }
 });
-
+*/
 export default router;
