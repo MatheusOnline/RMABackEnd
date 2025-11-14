@@ -101,7 +101,7 @@ router.post("/get", async (req, res) => {
         let data;
         
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), 20000);
 
         try {
             const response = await fetch(url, 
