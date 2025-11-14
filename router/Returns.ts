@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv"
 import crypto from "crypto";
+import multer from "multer";
+import path from "path";
 
 //=======SCHEMA=======//
 import { ReturnModel } from "../models/returnModel";
@@ -20,6 +22,19 @@ dotenv.config();
 //======VARIAVEIS======//
 const partner_id = process.env.PARTNER_ID;
 const host = process.env.HOST;
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // pasta onde salva
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // nome único
+  },
+});
+
+const upload = multer({ storage });
 
 
 interface SignFunctions {
@@ -49,20 +64,20 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
     return sign;
 }
 
+//Rota que busca os dados das devoluÇoes na shopee 
 router.post("/get", async (req, res) => {
     try {
         const { shop_id } = req.body;
         if (!shop_id)
             return res.status(400).json({ error: "shop_id não pode ser nulo" });
 
-        const days = 4; // últimos 5 dias
         const shop = await CreateShop({ shop_id });
         if (!shop)
             return res.status(400).json({ error: "Erro na hora de pegar a loja" });
 
-        // 🕒 timestamps em segundos
+       
         const ts = Math.floor(Date.now() / 1000);
-        const fiveDaysAgo = ts - days * 24 * 60 * 60;
+        const fiveDaysAgo = ts - 4 * 24 * 60 * 60;
 
         const path = "/api/v2/returns/get_return_list";
         let access_token = (shop as any).access_token;
@@ -84,20 +99,31 @@ router.post("/get", async (req, res) => {
         let url = `${host}${path}?${urlParams}`;
 
         let data;
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, 
+                {
+                    method: "GET",
+                    signal: controller.signal,
+                });
+            
+            clearTimeout(timeout);
+            
             data = await response.json();
 
             // Se o token for inválido, renova e tenta novamente
             if (data.error === "invalid_acceess_token") {
-                console.warn("Token inválido, tentando renovar...");
-
                 const newToken = await refreshAccessToken(shop_id);
-                if (!newToken) {
+                
+                if (!newToken)
                     return res.status(401).json({ error: "Falha ao renovar token" });
-                }
+                
 
                 const newSign = Sign({ path, ts, access_token: newToken, shop_id });
+                
                 const newParams = new URLSearchParams({
                     ...params,
                     access_token: newToken,
@@ -110,19 +136,24 @@ router.post("/get", async (req, res) => {
             }
 
         } catch (err) {
-            console.error("Erro na requisição:", err);
             return res.status(500).json({ error: "Erro ao buscar devoluções" });
         }
 
-        console.log("Resposta Shopee:", data);
 
         const returnList = data?.response?.return || [];
+
+        if(!Array.isArray(returnList)){
+            return res.status(500).json({ error: "Resposta invalida da Shopee"})
+        }
+
+        data = null
 
         if (returnList.length > 0) {
             await CreateReturn(shop_id, returnList);
         }
 
-        const listReturns = await ReturnModel.find({ shop_id });
+        const listReturns = await ReturnModel.find({ shop_id }).limit(500).lean();
+      
         return res.json({ success: true, return_list: listReturns });
 
     } catch (error) {
@@ -131,134 +162,170 @@ router.post("/get", async (req, res) => {
     }
 });
 
+//
+// Rota para procurar Devolucos no banco de dados 
+// Atraves da solicitaçao de devoluçao 
+//
 router.post("/seach", async (req, res) =>{
     const { return_sn} = req.body
 
-    try{
-        const data = await ReturnModel.findOne({return_sn})
+    if(!return_sn){
+        return res.status(400).json({error: "Return é obrigatorio", success: false})
+    }
 
-        if(!data)
-            res.status(200).json({error:"Essa devoluçao nao existe", succeso:false})
-        
-        res.status(200).json({data:data, succeso:true})
+    try{
+        const data = await ReturnModel.findOne({return_sn}).lean();
+
+        if(!data){
+            return res.status(200).json({error:"Essa devoluçao nao existe", success:false})
+        }
+
+       return res.status(200).json({data:data, success:true})
     }
     catch(error){
-        res.status(500).json(error)
+       return res.status(500).json({error: error, success:false})
     }
 })
 
+//
+// Rota para listar a logisstica reversa 
+// Atraves do numero de da devoluçao
+//
 router.post("/tracking", async (req, res) =>{
     const { return_sn, shop_id} = req.body
+
+    if (!return_sn || !shop_id) 
+        return res.status(400).json({ error: "return_sn e shop_id são obrigatórios",sucesso: false });
+    
     try {
-    console.log("Body recebido:", req.body);
-
-    const shop = await CreateShop({ shop_id });
-    console.log("Shop retornado:", shop);
-
-    const path = "/api/v2/returns/get_reverse_tracking_info";
-    
-    const ts = Timestamp();
-    const access_token = (shop as any).access_token
-    const sign = Sign({path, ts, access_token, shop_id})
-
-
-    const params = {
-        partner_id: String(partner_id),
-        sign,
-        timestamp: String(ts),
-        shop_id: String(shop_id),
-        access_token,
-        return_sn
-    };
-
-    const urlParams = new URLSearchParams(params).toString();
-    const url = `${host}${path}?${urlParams}`;
-    console.log("URL:", url);
-
-    const response = await fetch(url);
-    const datas = await response.json();
-    
-
-    res.status(200).json({datas:datas, success: true});
-} catch (err) {
-    console.error("Erro:", err);
-    res.status(500).json({ error: err, stack: err });
-}
-})
-
-router.post("/scan", async (req, res) =>{
-    const { tracking_id } = req.body
-    try{
-
-
-        // Pega os dados da devoluçoes
-        const returnDatas = await ReturnModel.findOne({tracking_number: tracking_id})
-        if(!returnDatas)
-            return res.status(400).json({success: false, message: "Nao achou nenhuma devoluçao "})
-
-        // Pega o nome da loja 
-        const shop = await ShopModel.findOne({shop_id: returnDatas.shop_id})
+        const shop = await ShopModel.findOne({ shop_id }).lean();
         if(!shop)
-            return res.status(400).json({success: false, message: "Nao achou a loja"})
-        
+             return res.status(400).json({ error: "Falha em buscar a loja", success: false});
         
 
-        // Retorna os dados para o front end
-        return res.status(200).json({success: true, message: "Devolucao encontrada", data: returnDatas, shop_name: shop.name})
-    }catch(error){
-        return res.status(500).json({success: false, message: error})
+        const path = "/api/v2/returns/get_reverse_tracking_info";
+        const ts = Timestamp();
+        let access_token = (shop as any).access_token
+        let sign = Sign({path, ts, access_token, shop_id})
+
+
+        const params = {
+            partner_id: String(partner_id),
+            sign,
+            timestamp: String(ts),
+            shop_id: String(shop_id),
+            access_token,
+            return_sn
+        };
+
+        const urlParams = new URLSearchParams(params).toString();
+        const url = `${host}${path}?${urlParams}`;
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        let response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        let data = await response.json();
+        
+        if(data.error === "invalid_acceess_token"){
+            const newToken = await refreshAccessToken(shop_id);
+            if (!newToken) {
+                return res.status(401).json({ error: "Falha ao renovar token" });
+            }
+        }
+
+        return res.status(200).json({datas:data, success: true});
+    } catch (error) {
+        console.error("Erro:", error);
+        return res.status(500).json({ error: error, success: false});
     }
 })
 
-import multer from "multer";
-import path from "path";
+//
+// Rota para scanear a  devoluçao 
+// E buscar atraves do numero de tranporte
+//
+router.post("/scan", async (req, res) => {
+    const { tracking_id } = req.body;
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // pasta onde salva
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // nome único
-  },
+    // Validação de entrada
+    if (!tracking_id) {
+        return res.status(400).json({ success: false, error: "tracking_id é obrigatório"});
+    }
+
+    try {
+        // Busca devolução
+        const returnData = await ReturnModel.findOne({ tracking_number: tracking_id }).lean();
+
+        if (!returnData) {
+            return res.status(404).json({success: false, error: "Nenhuma devolução encontrada"});
+        }
+
+        // Busca loja
+        const shop = await ShopModel.findOne({ shop_id: returnData.shop_id }).lean();
+
+        if (!shop) {
+            return res.status(404).json({ success: false, error: "Loja não encontrada" });
+        }
+
+        // Resposta final
+        return res.status(200).json({
+            success: true,
+            message: "Devolução encontrada",
+            data: returnData,
+            shop_name: shop.name
+        });
+
+    } catch (error) {
+        console.error("Erro na rota /scan:", error);
+        return res.status(500).json({success: false, error: "Erro interno no servidor"
+        });
+    }
 });
 
-const upload = multer({ storage });
 
+// 
+// Rota para finalizar a devoluçao 
+// E salvar no banco as informacoes 
+//
+router.post("/finish", upload.single("imagen"), async (req, res) => {
+    const { return_sn, observation } = req.body;
 
-router.post("/finish", upload.single("imagen"), async (req, res) =>{
-    const {return_sn, observation, imagen} = req.body 
-    try{
-        const returnDatas = await ReturnModel.findOne({return_sn})
-        
-        if(!returnDatas)
-            return res.status(400).json({success: false, message: "Falha em achar a devoluçao"})
-
-        returnDatas.status = "Concluida";
-
-        returnDatas.save();
-        
-        const filePath = req.file ? `/uploads/${req.file.filename}` : null;
-        try{
-            const finish = await FinishModel.create({
-                return_id: returnDatas?.return_sn,
-                observation: observation,
-                imagen: filePath,
-                data_finish: Timestamp()
-                
-            })
-
-            return res.status(200).json({success: true, message: "Devoluçao concluida", data: finish}) 
-        }catch(error){
-            console.log(error)
-            return res.status(500).json({success: false, message: "falha ao concluir"})
-        }
-        
-
-    }catch(error){
-        console.log(error)
-        return res.status(500).json({success: false, message: "erro no servidor"})
+    if (!return_sn) {
+        return res.status(400).json({ success: false, error: "return_sn é obrigatório"});
     }
-})
+
+    try {
+        // Atualiza o status e já retorna o documento
+        const returnData = await ReturnModel.findOneAndUpdate(
+            { return_sn },
+            { status: "Concluida" },
+            { new: true }
+        ).lean();
+
+        if (!returnData) {
+            return res.status(404).json({ success: false, error: "Falha em achar a devolução"});
+        }
+
+        // Caminho da imagem (se enviada)
+        const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+        // Cria o registro da conclusão
+        await FinishModel.create({
+            return_id: returnData.return_sn,
+            observation: observation || null,
+            imagen: filePath,
+            data_finish: Timestamp()
+        });
+
+        return res.status(200).json({success: true, message: "Devolução concluída",});
+
+    } catch (error) {
+        console.error("Erro na rota /finish:", error);
+        return res.status(500).json({success: false, error: "Erro no servidor"});
+    }
+});
 
 export default router;
