@@ -64,147 +64,103 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
     return sign;
 }
 
-// ================================
-//  ROTA GET OTIMIZADA DE DEVOLUÇÕES
-// ================================
+//Rota que busca os dados das devoluÇoes na shopee 
 router.post("/get", async (req, res) => {
     try {
         const { shop_id } = req.body;
+        if (!shop_id)
+            return res.status(400).json({ error: "shop_id não pode ser nulo" });
 
-        if (!shop_id) {
-            return res.status(400).json({
-                success: false,
-                error: "shop_id não pode ser nulo"
-            });
-        }
-
-        // 1. Buscar loja
         const shop = await CreateShop({ shop_id });
-        if (!shop) {
-            return res.status(400).json({
-                success: false,
-                error: "Erro ao buscar a loja"
-            });
-        }
+        if (!shop)
+            return res.status(400).json({ error: "Erro na hora de pegar a loja" });
 
+       
         const ts = Math.floor(Date.now() / 1000);
         const fiveDaysAgo = ts - 4 * 24 * 60 * 60;
-        const path = "/api/v2/returns/get_return_list";
 
+        const path = "/api/v2/returns/get_return_list";
         let access_token = (shop as any).access_token;
         let sign = Sign({ path, ts, access_token, shop_id });
 
         const params = {
+            access_token,
             partner_id: String(partner_id),
             shop_id: String(shop_id),
-            access_token,
-            timestamp: String(ts),
-            sign,
             page_no: "1",
             page_size: "50",
+            timestamp: String(ts),
+            sign,
             create_time_from: String(fiveDaysAgo),
-            create_time_to: String(ts)
+            create_time_to: String(ts),
         };
 
-        const url = `${host}${path}?${new URLSearchParams(params).toString()}`;
+        const urlParams = new URLSearchParams(params).toString();
+        let url = `${host}${path}?${urlParams}`;
 
-        // Timeout
+        let data;
+        
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-
-        let apiResponse;
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
         try {
-            const response = await fetch(url, { signal: controller.signal });
+            const response = await fetch(url, 
+                {
+                    method: "GET",
+                    signal: controller.signal,
+                });
+            
             clearTimeout(timeout);
-            apiResponse = await response.json();
-        } catch (err) {
-            clearTimeout(timeout);
-            return res.status(503).json({ success: false, error: "Shopee timeout" });
-        }
+            
+            data = await response.json();
 
-        // Token expirado
-        if (apiResponse.error === "invalid_acceess_token") {
-            const newToken = await refreshAccessToken(shop_id);
-            if (!newToken) {
-                return res.status(401).json({ success: false, error: "Falha ao renovar token" });
+            // Se o token for inválido, renova e tenta novamente
+            if (data.error === "invalid_acceess_token") {
+                const newToken = await refreshAccessToken(shop_id);
+                
+                if (!newToken)
+                    return res.status(401).json({ error: "Falha ao renovar token" });
+                
+
+                const newSign = Sign({ path, ts, access_token: newToken, shop_id });
+                
+                const newParams = new URLSearchParams({
+                    ...params,
+                    access_token: newToken,
+                    sign: newSign,
+                }).toString();
+
+                url = `${host}${path}?${newParams}`;
+                const retryResponse = await fetch(url);
+                data = await retryResponse.json();
             }
 
-            access_token = newToken;
-            const newSign = Sign({ path, ts, access_token, shop_id });
-
-            const retryUrl = `${host}${path}?${new URLSearchParams({
-                ...params,
-                access_token,
-                sign: newSign
-            }).toString()}`;
-
-            const retryRes = await fetch(retryUrl);
-            apiResponse = await retryRes.json();
+        } catch (err) {
+            return res.status(500).json({ error: "Erro ao buscar devoluções" });
         }
 
-        const apiReturns = apiResponse?.response?.return || [];
 
-        if (!Array.isArray(apiReturns)) {
-            return res.status(500).json({
-                success: false,
-                error: "Resposta inválida da Shopee"
-            });
+        const returnList = data?.response?.return || [];
+
+        if(!Array.isArray(returnList)){
+            return res.status(500).json({ error: "Resposta invalida da Shopee"})
         }
 
-        // ===========================================
-        // 3. OTIMIZADO: FILTRAR NOVAS DEVOLUÇÕES
-        //    (Substitui o cursor e o Set grande de 2000 itens)
-        // ===========================================
-        
-        // 3.1 Pegar todos os return_sn da resposta da API (máx. 50)
-        const apiSNs = apiReturns.map(ret => ret.return_sn);
+        data = null
 
-        // 3.2 Buscar no MongoDB APENAS aqueles que já existem
-        const existingDocs = await ReturnModel.find(
-            { shop_id, return_sn: { $in: apiSNs } },
-            { return_sn: 1 } // Projeção para buscar só o necessário
-        ).lean();
-
-        // 3.3 Criar um Set PEQUENO (máx. 50 itens)
-        const existingSN = new Set(existingDocs.map(doc => doc.return_sn));
-
-        // 3.4 Filtrar novas
-        const newReturns = apiReturns
-            .filter(ret => !existingSN.has(ret.return_sn))
-            .map(ret => ({ ...ret, shop_id })); // Adiciona shop_id ao objeto
-
-        if (newReturns.length > 0) {
-            // Se CreateReturn for um wrapper para insertOne/Many, use insertMany diretamente para performance
-            // Se precisar das lógicas de CreateReturn, use-o
-            await ReturnModel.insertMany(newReturns);
+        if (returnList.length > 0) {
+            await CreateReturn(shop_id, returnList);
         }
 
-        // ===========================
-        // 4. Buscar lista final limitada (paginada)
-        //    Recomendado: Projetar campos para reduzir RAM
-        // ===========================
-        const listReturns = await ReturnModel.find({ shop_id })
-            .sort({ create_time: -1 })
-            .limit(200) 
-            .lean();
-
-        return res.json({
-            success: true,
-            new_count: newReturns.length,
-            total: listReturns.length,
-            return_list: listReturns
-        });
+        const listReturns = await ReturnModel.find({ shop_id }).limit(500).lean();
+      
+        return res.json({ success: true, return_list: listReturns });
 
     } catch (error) {
-        console.error("ERRO ROTA /get:", error);
-        return res.status(500).json({
-            success: false,
-            error: "Erro interno do servidor"
-        });
+        console.error(error);
+        return res.status(500).json({ error });
     }
 });
-
 
 //
 // Rota para procurar Devolucos no banco de dados 
@@ -372,4 +328,4 @@ router.post("/finish", upload.single("imagen"), async (req, res) => {
     }
 });
 
-export default router; 
+export default router;
