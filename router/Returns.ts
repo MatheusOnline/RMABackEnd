@@ -78,9 +78,7 @@ router.post("/get", async (req, res) => {
             });
         }
 
-        // ===========================
-        // 1. BUSCA A LOJA
-        // ===========================
+        // 1. Buscar loja
         const shop = await CreateShop({ shop_id });
         if (!shop) {
             return res.status(400).json({
@@ -91,8 +89,8 @@ router.post("/get", async (req, res) => {
 
         const ts = Math.floor(Date.now() / 1000);
         const fiveDaysAgo = ts - 4 * 24 * 60 * 60;
-
         const path = "/api/v2/returns/get_return_list";
+
         let access_token = (shop as any).access_token;
         let sign = Sign({ path, ts, access_token, shop_id });
 
@@ -110,44 +108,37 @@ router.post("/get", async (req, res) => {
 
         const url = `${host}${path}?${new URLSearchParams(params).toString()}`;
 
-        // Timeout prevent server freeze
+        // Timeout
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
 
         let apiResponse;
 
-        // ===========================
-        // 2. CHAMADA PARA SHOPEE
-        // ===========================
         try {
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeout);
             apiResponse = await response.json();
         } catch (err) {
             clearTimeout(timeout);
-            return res.status(503).json({
-                success: false,
-                error: "Shopee timeout"
-            });
+            return res.status(503).json({ success: false, error: "Shopee timeout" });
         }
 
-        // Token expirado → renovar
+        // Token expirado
         if (apiResponse.error === "invalid_acceess_token") {
             const newToken = await refreshAccessToken(shop_id);
             if (!newToken) {
                 return res.status(401).json({ success: false, error: "Falha ao renovar token" });
             }
-            
-            access_token = newToken ;
+
+            access_token = newToken;
             const newSign = Sign({ path, ts, access_token, shop_id });
 
-            const retryParams = new URLSearchParams({
+            const retryUrl = `${host}${path}?${new URLSearchParams({
                 ...params,
                 access_token,
                 sign: newSign
-            });
+            }).toString()}`;
 
-            const retryUrl = `${host}${path}?${retryParams.toString()}`;
             const retryRes = await fetch(retryUrl);
             apiResponse = await retryRes.json();
         }
@@ -162,33 +153,39 @@ router.post("/get", async (req, res) => {
         }
 
         // ===========================
-        // 3. Buscar devoluções locais
+        // 3. Buscar somente return_sn usando cursor
         // ===========================
-        const existingReturns = await ReturnModel.find(
+
+        const cursor = ReturnModel.find(
             { shop_id },
             { return_sn: 1 }
-        ).lean();
+        ).cursor();
 
-        const existingSN = new Set(existingReturns.map(r => r.return_sn));
+        const existingSN = new Set();
+
+        for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
+            existingSN.add(doc.return_sn);
+
+            // LIMITADOR DE RAM
+            if (existingSN.size > 2000) break;
+        }
 
         // ===========================
-        // 4. Filtrar SOMENTE as novas
+        // 4. Filtrar novas sem explodir memória
         // ===========================
+
         const newReturns = apiReturns.filter(ret => !existingSN.has(ret.return_sn));
 
-        // ===========================
-        // 5. Inserir somente NOVAS
-        // ===========================
         if (newReturns.length > 0) {
             await CreateReturn(shop_id, newReturns);
         }
 
         // ===========================
-        // 6. Retornar lista final
+        // 5. Buscar lista final limitada (paginada)
         // ===========================
         const listReturns = await ReturnModel.find({ shop_id })
             .sort({ create_time: -1 })
-            .limit(500)
+            .limit(200) // reduzido para proteger memória
             .lean();
 
         return res.json({
@@ -206,6 +203,7 @@ router.post("/get", async (req, res) => {
         });
     }
 });
+
 
 
 //
