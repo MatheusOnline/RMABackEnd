@@ -15,8 +15,9 @@ import path from "path";
 
 
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 
 // 👉 habilita acesso público à pasta 'uploads'
@@ -79,4 +80,5 @@ app.get("/ClearReturns", async (req, res) => {
     res.status(500).send("Erro ao buscar RMAs");
   }
 });
-app.listen(5000, () => console.log("🚀 Servidor rodando na porta 5000"));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
