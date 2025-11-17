@@ -69,7 +69,7 @@ router.post("/get", async (req, res) => {
         let url = `${host}${path}?${urlParams}`;
         let data;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), 30000);
         try {
             const response = await fetch(url, {
                 method: "GET",
@@ -95,6 +95,7 @@ router.post("/get", async (req, res) => {
             }
         }
         catch (err) {
+            console.log(err);
             return res.status(500).json({ error: err, success: false });
         }
         const returnList = data?.response?.return || [];
