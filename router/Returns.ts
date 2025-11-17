@@ -1,23 +1,32 @@
 import express from "express";
 import dotenv from "dotenv"
 import crypto from "crypto";
+import multer from "multer";
 
+//====CONFIGURACOES====//
+import storage from "../config/multerConfig";
 
 
 //=======SCHEMA=======//
 import { ReturnModel } from "../models/returnModel";
 import { FinishModel } from "../models/finishModel";
+import { ShopModel } from "../models/shopModel";
+
 
 //======FUNCOES========//
 import CreateShop from "../utils/dbUtius/createShop";
 import CreateReturn from "../utils/dbUtius/createReturn";
 import Timestamp from "../utils/timestamp";
 import refreshAccessToken from "../utils/refreshAccessToken";
-import { ShopModel } from "../models/shopModel";
-import  downloadImage from "../utils/downloadImage";
+
+
+
+
 //====CONFIGURACOES====//
 const router = express.Router();
 dotenv.config();
+
+const upload = multer({storage: storage})
 
 
 
@@ -25,19 +34,6 @@ dotenv.config();
 const partner_id = process.env.PARTNER_ID;
 const host = process.env.HOST;
 
-/*
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // pasta onde salva
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // nome único
-  },
-});
-
-const upload = multer({ storage });
-*/
 
 interface SignFunctions {
   path: string;
@@ -138,7 +134,7 @@ router.post("/get", async (req, res) => {
             }
 
         } catch (err) {
-            return res.status(500).json({ error: "Erro ao buscar devoluções" });
+            return res.status(500).json({ error: err, success: false });
         }
 
 
@@ -292,7 +288,6 @@ router.post("/scan", async (req, res) => {
 // Rota para finalizar a devoluçao 
 // E salvar no banco as informacoes 
 //
-/*
 router.post("/finish", upload.single("imagen"), async (req, res) => {
     const { return_sn, observation } = req.body;
 
@@ -330,5 +325,5 @@ router.post("/finish", upload.single("imagen"), async (req, res) => {
         return res.status(500).json({success: false, error: "Erro no servidor"});
     }
 });
-*/
+
 export default router;
