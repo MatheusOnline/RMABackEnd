@@ -73,8 +73,8 @@ function Sign({ path, ts, access_token, shop_id }) {
     return sign;
 }
 //
-//Rota para buscara as devolucoes da shopee
-//Salva no banco essas devolucoes e retorna 
+//Rota para buscara as devolucoes no banco de dados
+//Retorna as devolucoes para o frontend
 // 
 router.post("/get", async (req, res) => {
     try {
