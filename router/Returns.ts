@@ -41,29 +41,44 @@ interface SignFunctions {
   shop_id: Number;
 }
 
+//
+//Funçao é chamada acada X tempo
+//Salva no banco de dados as devolucoes
+//
 router.get("/cron/get", async (req, res) => {
-    const shop_id = "1098552885"
-    try{
-        let data = await SeachReturns(shop_id)
+    try {
+        const shops = await ShopModel.find().lean(); // todas as lojas
 
+        console.log(`🔍 Encontradas ${shops.length} lojas`);
 
-        const returnList = data?.response?.return || [];
+        for (const shop of shops) {
+            const shop_id = String(shop.shop_id);
 
-        if(!Array.isArray(returnList)){
-            return res.status(500).json({ error: "Resposta invalida da Shopee"})
+            console.log(`Buscando devoluções da loja: ${shop_id}`);
+
+            let data = await SeachReturns(shop_id);
+
+            const returnList = data?.response?.return || [];
+
+            if (!Array.isArray(returnList)) {
+                console.log(`Resposta inválida para loja ${shop_id}`);
+                continue; // pula essa loja e segue
+            }
+
+            if (returnList.length > 0) {
+                console.log(` Encontradas ${returnList.length} devoluções para ${shop_id}`);
+                await CreateReturn(shop_id, returnList);
+            } else {
+                console.log(`Nenhuma devolução encontrada para ${shop_id}`);
+            }
         }
 
-        data = null
+        return res.send("Cron OK — todas as lojas processadas");
 
-        if (returnList.length > 0) {
-            await CreateReturn(shop_id, returnList);
-        }
-
-        return res.send("Cron OK");
-    }catch(error){
-        console.log("erro:" + error)
+    } catch (error) {
+        console.error("❌ erro no cron:", error);
+        return res.status(500).json({ error: "Erro geral no cron" });
     }
-    
 });
 
 //=======FUNÇAO PARA GERAR O SING=======//

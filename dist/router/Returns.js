@@ -25,22 +25,36 @@ const upload = (0, multer_1.default)({ storage: multerConfig_1.default });
 //======VARIAVEIS======//
 const partner_id = process.env.PARTNER_ID;
 const host = process.env.HOST;
+//
+//Funçao é chamada acada X tempo
+//Salva no banco de dados as devolucoes
+//
 router.get("/cron/get", async (req, res) => {
-    const shop_id = "1098552885";
     try {
-        let data = await (0, SeachReturns_1.default)(shop_id);
-        const returnList = data?.response?.return || [];
-        if (!Array.isArray(returnList)) {
-            return res.status(500).json({ error: "Resposta invalida da Shopee" });
+        const shops = await shopModel_1.ShopModel.find().lean(); // todas as lojas
+        console.log(`🔍 Encontradas ${shops.length} lojas`);
+        for (const shop of shops) {
+            const shop_id = String(shop.shop_id);
+            console.log(`Buscando devoluções da loja: ${shop_id}`);
+            let data = await (0, SeachReturns_1.default)(shop_id);
+            const returnList = data?.response?.return || [];
+            if (!Array.isArray(returnList)) {
+                console.log(`Resposta inválida para loja ${shop_id}`);
+                continue; // pula essa loja e segue
+            }
+            if (returnList.length > 0) {
+                console.log(` Encontradas ${returnList.length} devoluções para ${shop_id}`);
+                await (0, createReturn_1.default)(shop_id, returnList);
+            }
+            else {
+                console.log(`Nenhuma devolução encontrada para ${shop_id}`);
+            }
         }
-        data = null;
-        if (returnList.length > 0) {
-            await (0, createReturn_1.default)(shop_id, returnList);
-        }
-        return res.send("Cron OK");
+        return res.send("Cron OK — todas as lojas processadas");
     }
     catch (error) {
-        console.log("erro:" + error);
+        console.error("❌ erro no cron:", error);
+        return res.status(500).json({ error: "Erro geral no cron" });
     }
 });
 //=======FUNÇAO PARA GERAR O SING=======//
