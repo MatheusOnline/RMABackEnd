@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Call Render API
         run: |
-          curl -X GET "https://rmabackend-zuvt.onrender.com/returns/cron/get"
+          curl -X GET "https://rmabackend-zuvt.onrender.com/return/cron/get"
