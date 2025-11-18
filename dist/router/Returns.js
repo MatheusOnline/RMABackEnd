@@ -18,6 +18,7 @@ const createReturn_1 = __importDefault(require("../utils/dbUtius/createReturn"))
 const timestamp_1 = __importDefault(require("../utils/timestamp"));
 const refreshAccessToken_1 = __importDefault(require("../utils/refreshAccessToken"));
 const SeachReturns_1 = __importDefault(require("../utils/returns/SeachReturns"));
+const UpdateRetuns_1 = __importDefault(require("../utils/returns/UpdateRetuns"));
 //====CONFIGURACOES====//
 const router = express_1.default.Router();
 dotenv_1.default.config();
@@ -36,19 +37,7 @@ router.get("/cron/get", async (req, res) => {
         for (const shop of shops) {
             const shop_id = String(shop.shop_id);
             console.log(`Buscando devoluções da loja: ${shop_id}`);
-            let data = await (0, SeachReturns_1.default)(shop_id);
-            const returnList = data?.response?.return || [];
-            if (!Array.isArray(returnList)) {
-                console.log(`Resposta inválida para loja ${shop_id}`);
-                continue; // pula essa loja e segue
-            }
-            if (returnList.length > 0) {
-                console.log(` Encontradas ${returnList.length} devoluções para ${shop_id}`);
-                await (0, createReturn_1.default)(shop_id, returnList);
-            }
-            else {
-                console.log(`Nenhuma devolução encontrada para ${shop_id}`);
-            }
+            await (0, SeachReturns_1.default)(shop_id);
         }
         return res.send("Cron OK — todas as lojas processadas");
     }
@@ -72,6 +61,28 @@ function Sign({ path, ts, access_token, shop_id }) {
         .digest("hex");
     return sign;
 }
+router.post("/save", async (req, res) => {
+    try {
+        const { shop_id } = req.body;
+        await (0, SeachReturns_1.default)(shop_id);
+        return res.status(200).json({ success: false, message: "Salvo" });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: error, success: false });
+    }
+});
+router.post("/save", async (req, res) => {
+    try {
+        const { shop_id } = req.body;
+        await (0, UpdateRetuns_1.default)(shop_id);
+        return res.status(200).json({ success: true, menssage: "Atualizado" });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: error, success: false });
+    }
+});
 //
 //Rota para buscara as devolucoes no banco de dados
 //Retorna as devolucoes para o frontend

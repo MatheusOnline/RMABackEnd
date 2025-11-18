@@ -24,6 +24,7 @@ const returnSchema = new mongoose_1.default.Schema({
     shop_id: { type: String, required: true },
     return_sn: { type: String, required: true },
     order_sn: { type: String, required: true },
+    status_shopee: { type: String, required: true },
     tracking_number: { type: String, required: false },
     status: { type: String, required: true },
     reason: { type: String, required: true },

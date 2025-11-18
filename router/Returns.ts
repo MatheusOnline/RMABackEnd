@@ -17,7 +17,9 @@ import { ShopModel } from "../models/shopModel";
 import CreateReturn from "../utils/dbUtius/createReturn";
 import Timestamp from "../utils/timestamp";
 import refreshAccessToken from "../utils/refreshAccessToken";
+
 import SeachReturns from "../utils/returns/SeachReturns";
+import UpdateRetuns from "../utils/returns/UpdateRetuns";
 
 
 
@@ -56,21 +58,8 @@ router.get("/cron/get", async (req, res) => {
 
             console.log(`Buscando devoluções da loja: ${shop_id}`);
 
-            let data = await SeachReturns(shop_id);
+            await SeachReturns(shop_id);
 
-            const returnList = data?.response?.return || [];
-
-            if (!Array.isArray(returnList)) {
-                console.log(`Resposta inválida para loja ${shop_id}`);
-                continue; // pula essa loja e segue
-            }
-
-            if (returnList.length > 0) {
-                console.log(` Encontradas ${returnList.length} devoluções para ${shop_id}`);
-                await CreateReturn(shop_id, returnList);
-            } else {
-                console.log(`Nenhuma devolução encontrada para ${shop_id}`);
-            }
         }
 
         return res.send("Cron OK — todas as lojas processadas");
@@ -80,6 +69,8 @@ router.get("/cron/get", async (req, res) => {
         return res.status(500).json({ error: "Erro geral no cron" });
     }
 });
+
+
 
 //=======FUNÇAO PARA GERAR O SING=======//
 function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
@@ -100,6 +91,36 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
 
     return sign;
 }
+
+router.post("/save", async (req, res) =>{
+    try {
+        const { shop_id } = req.body;
+
+        await SeachReturns(shop_id)
+      
+        return res.status(200).json({success:false, message:"Salvo"})
+    }catch(error){
+        console.log(error)
+        return res.status(500).json({error:error, success: false})
+    }
+})
+
+router.post("/save", async (req, res)=>{
+    try{
+        const { shop_id } = req.body;
+
+        await UpdateRetuns(shop_id)
+
+        return res.status(200).json({success:true, menssage:"Atualizado"})
+    }catch(error){
+        console.log(error)
+        return res.status(500).json({error:error, success: false})
+    }
+
+
+
+})
+
 //
 //Rota para buscara as devolucoes no banco de dados
 //Retorna as devolucoes para o frontend

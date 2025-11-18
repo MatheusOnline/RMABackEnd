@@ -7,7 +7,6 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const returnModel_1 = require("./models/returnModel");
 const shopModel_1 = require("./models/shopModel");
-const finishModel_1 = require("./models/finishModel");
 const mongoose_1 = __importDefault(require("mongoose"));
 //=======IMPORTANDO ROTAS========//
 const Returns_1 = __importDefault(require("./router/Returns"));
@@ -57,7 +56,7 @@ app.get("/returns", async (req, res) => {
 });
 app.get("/ClearReturns", async (req, res) => {
     try {
-        await finishModel_1.FinishModel.deleteMany({});
+        await returnModel_1.ReturnModel.deleteMany({});
         res.send("deletado");
     }
     catch (err) {

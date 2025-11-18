@@ -1,4 +1,5 @@
 import { ShopModel } from "../../models/shopModel";
+import CreateReturn from "../dbUtius/createReturn";
 import crypto from "crypto";
 import refreshAccessToken from "../refreshAccessToken";
 function Sign(path: string, ts: string, access_token: string, shop_id: string) {
@@ -22,7 +23,7 @@ async function SeachReturns(shop_id: string) {
         while (attempts < 2) {  // evita loop infinito
             attempts++;
 
-            console.log("🔍 Buscando devoluções...");
+            
 
             const shop = await ShopModel.findOne({ shop_id });
             if (!shop) {
@@ -73,10 +74,26 @@ async function SeachReturns(shop_id: string) {
                 continue; // tentar de novo com token atualizado
             }
 
+
             break; // sucesso → sair do loop
         }
 
-        console.log("✔️ Resposta da Shopee:", data);
+        
+        
+        const returnList = data?.response?.return || [];
+        
+        if (!Array.isArray(returnList)) {
+            console.log(`Resposta inválida para loja ${shop_id}`);
+            
+        }
+        
+        if (returnList.length > 0) {
+            
+            await CreateReturn(shop_id, returnList);
+        } else {
+            console.log(`Nenhuma devolução encontrada para ${shop_id}`);
+        }
+
         return data;
 
     } catch (error) {

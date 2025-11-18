@@ -4,9 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const shopModel_1 = require("../../models/shopModel");
-const createReturn_1 = __importDefault(require("../dbUtius/createReturn"));
 const crypto_1 = __importDefault(require("crypto"));
 const refreshAccessToken_1 = __importDefault(require("../refreshAccessToken"));
+const partner_id = process.env.PARTNER_ID;
+const host = process.env.HOST;
 function Sign(path, ts, access_token, shop_id) {
     const partnerKey = process.env.PARTNER_KEY;
     const baseStr = `${process.env.PARTNER_ID}${path}${ts}${access_token}${shop_id}`;
@@ -15,14 +16,13 @@ function Sign(path, ts, access_token, shop_id) {
         .update(baseStr)
         .digest("hex");
 }
-const partner_id = process.env.PARTNER_ID;
-const host = process.env.HOST;
-async function SeachReturns(shop_id) {
+async function UpdateRetuns(shop_id) {
     try {
         let data;
         let attempts = 0;
         while (attempts < 2) { // evita loop infinito
             attempts++;
+            //Busca a loja para pegar o token 
             const shop = await shopModel_1.ShopModel.findOne({ shop_id });
             if (!shop) {
                 console.log("Loja não encontrada.");
@@ -42,8 +42,8 @@ async function SeachReturns(shop_id) {
                 page_size: "50",
                 timestamp: ts,
                 sign,
-                create_time_from: create_from,
-                create_time_to: create_to,
+                update_time_from: create_from,
+                update_time_to: create_to,
             };
             const url = `${host}${path}?${new URLSearchParams(params).toString()}`;
             const controller = new AbortController();
@@ -66,17 +66,9 @@ async function SeachReturns(shop_id) {
         if (!Array.isArray(returnList)) {
             console.log(`Resposta inválida para loja ${shop_id}`);
         }
-        if (returnList.length > 0) {
-            await (0, createReturn_1.default)(shop_id, returnList);
-        }
-        else {
-            console.log(`Nenhuma devolução encontrada para ${shop_id}`);
-        }
-        return data;
     }
     catch (error) {
-        console.log("❌ Erro ao buscar devoluções:", error);
-        return null;
+        return console.log(error);
     }
 }
-exports.default = SeachReturns;
+exports.default = UpdateRetuns;

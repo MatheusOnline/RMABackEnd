@@ -77,7 +77,7 @@ app.get("/returns", async (req, res) => {
 });
 app.get("/ClearReturns", async (req, res) => {
   try {
-    await FinishModel.deleteMany({ });
+    await ReturnModel.deleteMany({ });
     
     
 

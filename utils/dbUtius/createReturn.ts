@@ -37,7 +37,7 @@ async function CreateReturn(shop_id: string, returnList: ShopeeReturn[]) {
     console.log(`🚫 Removidas (CANCELLED): ${returnList.length - filteredReturns.length}`);
     console.log(`📦 Processando: ${filteredReturns.length}`);
     
-    const operations = returnList.map((ret) => ({
+    const operations = filteredReturns.map((ret) => ({
       updateOne: {
         filter: { return_sn: ret.return_sn },
         update: {
@@ -46,7 +46,8 @@ async function CreateReturn(shop_id: string, returnList: ShopeeReturn[]) {
             return_sn: ret.return_sn,
             order_sn: ret.order_sn,
             tracking_number: ret.tracking_number,
-            status: ret.status || "",
+            status_shopee: ret.status || "",
+            status: "SOLICITADA",
             reason: ret.reason || "",
             text_reason: ret.text_reason || "",
             create_time: ret.create_time,
