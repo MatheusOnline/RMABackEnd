@@ -32,8 +32,11 @@ interface ShopeeReturn {
 async function CreateReturn(shop_id: string, returnList: ShopeeReturn[]) {
   try {
 
+    const filteredReturns = returnList.filter(ret => ret.status !== "CANCELLED");
     console.log(`🔍 Recebidas ${returnList.length} devoluções.`);
-
+    console.log(`🚫 Removidas (CANCELLED): ${returnList.length - filteredReturns.length}`);
+    console.log(`📦 Processando: ${filteredReturns.length}`);
+    
     const operations = returnList.map((ret) => ({
       updateOne: {
         filter: { return_sn: ret.return_sn },

@@ -61,8 +61,10 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
 
     return sign;
 }
-
-//Rota que busca os dados das devoluÇoes na shopee 
+//
+//Rota para buscara as devolucoes da shopee
+//Salva no banco essas devolucoes e retorna 
+// 
 router.post("/get", async (req, res) => {
     try {
         const { shop_id } = req.body;
@@ -111,7 +113,7 @@ router.post("/get", async (req, res) => {
             clearTimeout(timeout);
             
             data = await response.json();
-            console.log(data)
+          
             // Se o token for inválido, renova e tenta novamente
             if (data.error === "invalid_acceess_token") {
                 const newToken = await refreshAccessToken(shop_id);
@@ -192,7 +194,7 @@ router.post("/seach", async (req, res) =>{
 //
 router.post("/tracking", async (req, res) =>{
     const { return_sn, shop_id} = req.body
-
+    
     if (!return_sn || !shop_id) 
         return res.status(400).json({ error: "return_sn e shop_id são obrigatórios",sucesso: false });
     
@@ -227,12 +229,19 @@ router.post("/tracking", async (req, res) =>{
         clearTimeout(timeout);
 
         let data = await response.json();
+        console.log(data)
+
         
+
         if(data.error === "invalid_acceess_token"){
             const newToken = await refreshAccessToken(shop_id);
             if (!newToken) {
                 return res.status(401).json({ error: "Falha ao renovar token" });
             }
+        }
+
+        if(data.error === "returns.error_reverse_logistics"){
+            return res.status(200).json({message:"Pedido não tem logistica reversa", success: false})
         }
 
         return res.status(200).json({datas:data, success: true});
