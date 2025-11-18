@@ -1,0 +1,14 @@
+name: Cron Returns
+
+on:
+  schedule:
+    - cron: "0 */12 * * *" # a cada 12 horas
+  workflow_dispatch: # permite rodar manualmente
+
+jobs:
+  call_api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render API
+        run: |
+          curl -X GET "https://rmabackend-zuvt.onrender.com/returns/cron/get"

@@ -14,10 +14,10 @@ const returnModel_1 = require("../models/returnModel");
 const finishModel_1 = require("../models/finishModel");
 const shopModel_1 = require("../models/shopModel");
 //======FUNCOES========//
-const createShop_1 = __importDefault(require("../utils/dbUtius/createShop"));
 const createReturn_1 = __importDefault(require("../utils/dbUtius/createReturn"));
 const timestamp_1 = __importDefault(require("../utils/timestamp"));
 const refreshAccessToken_1 = __importDefault(require("../utils/refreshAccessToken"));
+const SeachReturns_1 = __importDefault(require("../utils/returns/SeachReturns"));
 //====CONFIGURACOES====//
 const router = express_1.default.Router();
 dotenv_1.default.config();
@@ -25,6 +25,24 @@ const upload = (0, multer_1.default)({ storage: multerConfig_1.default });
 //======VARIAVEIS======//
 const partner_id = process.env.PARTNER_ID;
 const host = process.env.HOST;
+router.get("/cron/get", async (req, res) => {
+    const shop_id = "1098552885";
+    try {
+        let data = await (0, SeachReturns_1.default)(shop_id);
+        const returnList = data?.response?.return || [];
+        if (!Array.isArray(returnList)) {
+            return res.status(500).json({ error: "Resposta invalida da Shopee" });
+        }
+        data = null;
+        if (returnList.length > 0) {
+            await (0, createReturn_1.default)(shop_id, returnList);
+        }
+        return res.send("Cron OK");
+    }
+    catch (error) {
+        console.log("erro:" + error);
+    }
+});
 //=======FUNÇAO PARA GERAR O SING=======//
 function Sign({ path, ts, access_token, shop_id }) {
     const partnerKey = process.env.PARTNER_KEY;
@@ -49,57 +67,7 @@ router.post("/get", async (req, res) => {
         const { shop_id } = req.body;
         if (!shop_id)
             return res.status(400).json({ error: "shop_id não pode ser nulo" });
-        const shop = await (0, createShop_1.default)({ shop_id });
-        if (!shop)
-            return res.status(400).json({ error: "Erro na hora de pegar a loja" });
-        const ts = Math.floor(Date.now() / 1000);
-        const fiveDaysAgo = ts - 10 * 24 * 60 * 60;
-        const path = "/api/v2/returns/get_return_list";
-        let access_token = shop.access_token;
-        let sign = Sign({ path, ts, access_token, shop_id });
-        const params = {
-            access_token,
-            partner_id: String(partner_id),
-            shop_id: String(shop_id),
-            page_no: "1",
-            page_size: "50",
-            timestamp: String(ts),
-            sign,
-            create_time_from: String(fiveDaysAgo),
-            create_time_to: String(ts),
-        };
-        const urlParams = new URLSearchParams(params).toString();
-        let url = `${host}${path}?${urlParams}`;
-        let data;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-        try {
-            const response = await fetch(url, {
-                method: "GET",
-                signal: controller.signal,
-            });
-            clearTimeout(timeout);
-            data = await response.json();
-            // Se o token for inválido, renova e tenta novamente
-            if (data.error === "invalid_acceess_token") {
-                const newToken = await (0, refreshAccessToken_1.default)(shop_id);
-                if (!newToken)
-                    return res.status(401).json({ error: "Falha ao renovar token" });
-                const newSign = Sign({ path, ts, access_token: newToken, shop_id });
-                const newParams = new URLSearchParams({
-                    ...params,
-                    access_token: newToken,
-                    sign: newSign,
-                }).toString();
-                url = `${host}${path}?${newParams}`;
-                const retryResponse = await fetch(url);
-                data = await retryResponse.json();
-            }
-        }
-        catch (err) {
-            console.log(err);
-            return res.status(500).json({ error: err, success: false });
-        }
+        let data = await (0, SeachReturns_1.default)(shop_id);
         const returnList = data?.response?.return || [];
         if (!Array.isArray(returnList)) {
             return res.status(500).json({ error: "Resposta invalida da Shopee" });
