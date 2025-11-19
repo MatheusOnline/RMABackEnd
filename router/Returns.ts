@@ -92,6 +92,10 @@ function Sign({ path, ts, access_token, shop_id }: SignFunctions) {
     return sign;
 }
 
+//
+// Rota para buscar e salvar a devolucao 
+// Atraves da API da shopee
+//
 router.post("/save", async (req, res) =>{
     try {
         const { shop_id } = req.body;
@@ -105,7 +109,11 @@ router.post("/save", async (req, res) =>{
     }
 })
 
-router.post("/save", async (req, res)=>{
+//
+// Rota para atualizar o status das devolucoes
+//atualiza com base se tiver numero de transporte
+//
+router.post("/update", async (req, res)=>{
     try{
         const { shop_id } = req.body;
 
@@ -131,22 +139,12 @@ router.post("/get", async (req, res) => {
         if (!shop_id)
             return res.status(400).json({ error: "shop_id não pode ser nulo" });
 
-        let data = await SeachReturns(shop_id)
+         const listReturns = await ReturnModel.find({ shop_id }).limit(500).lean();
 
-
-        const returnList = data?.response?.return || [];
-
-        if(!Array.isArray(returnList)){
+        if(!Array.isArray(listReturns)){
             return res.status(500).json({ error: "Resposta invalida da Shopee"})
         }
 
-        data = null
-
-        if (returnList.length > 0) {
-            await CreateReturn(shop_id, returnList);
-        }
-
-        const listReturns = await ReturnModel.find({ shop_id }).limit(500).lean();
       
         return res.json({ success: true, return_list: listReturns });
 
@@ -245,7 +243,7 @@ router.post("/tracking", async (req, res) =>{
 })
 
 //
-// Rota para scanear a  devoluçao 
+// Rota do scanear de devoluçao 
 // E buscar atraves do numero de tranporte
 //
 router.post("/scan", async (req, res) => {
@@ -286,7 +284,6 @@ router.post("/scan", async (req, res) => {
     }
 });
 
-
 // 
 // Rota para finalizar a devoluçao 
 // E salvar no banco as informacoes 
@@ -302,7 +299,7 @@ router.post("/finish", upload.single("imagen"), async (req, res) => {
         // Atualiza o status e já retorna o documento
         const returnData = await ReturnModel.findOneAndUpdate(
             { return_sn },
-            { status: "Concluida" },
+            { status: "RECEBIDO" },
             { new: true }
         ).lean();
 

@@ -13,8 +13,6 @@ const multerConfig_1 = __importDefault(require("../config/multerConfig"));
 const returnModel_1 = require("../models/returnModel");
 const finishModel_1 = require("../models/finishModel");
 const shopModel_1 = require("../models/shopModel");
-//======FUNCOES========//
-const createReturn_1 = __importDefault(require("../utils/dbUtius/createReturn"));
 const timestamp_1 = __importDefault(require("../utils/timestamp"));
 const refreshAccessToken_1 = __importDefault(require("../utils/refreshAccessToken"));
 const SeachReturns_1 = __importDefault(require("../utils/returns/SeachReturns"));
@@ -61,6 +59,10 @@ function Sign({ path, ts, access_token, shop_id }) {
         .digest("hex");
     return sign;
 }
+//
+// Rota para buscar e salvar a devolucao 
+// Atraves da API da shopee
+//
 router.post("/save", async (req, res) => {
     try {
         const { shop_id } = req.body;
@@ -72,7 +74,11 @@ router.post("/save", async (req, res) => {
         return res.status(500).json({ error: error, success: false });
     }
 });
-router.post("/save", async (req, res) => {
+//
+// Rota para atualizar o status das devolucoes
+//atualiza com base se tiver numero de transporte
+//
+router.post("/update", async (req, res) => {
     try {
         const { shop_id } = req.body;
         await (0, UpdateRetuns_1.default)(shop_id);
@@ -92,16 +98,10 @@ router.post("/get", async (req, res) => {
         const { shop_id } = req.body;
         if (!shop_id)
             return res.status(400).json({ error: "shop_id não pode ser nulo" });
-        let data = await (0, SeachReturns_1.default)(shop_id);
-        const returnList = data?.response?.return || [];
-        if (!Array.isArray(returnList)) {
+        const listReturns = await returnModel_1.ReturnModel.find({ shop_id }).limit(500).lean();
+        if (!Array.isArray(listReturns)) {
             return res.status(500).json({ error: "Resposta invalida da Shopee" });
         }
-        data = null;
-        if (returnList.length > 0) {
-            await (0, createReturn_1.default)(shop_id, returnList);
-        }
-        const listReturns = await returnModel_1.ReturnModel.find({ shop_id }).limit(500).lean();
         return res.json({ success: true, return_list: listReturns });
     }
     catch (error) {
@@ -178,7 +178,7 @@ router.post("/tracking", async (req, res) => {
     }
 });
 //
-// Rota para scanear a  devoluçao 
+// Rota do scanear de devoluçao 
 // E buscar atraves do numero de tranporte
 //
 router.post("/scan", async (req, res) => {
@@ -223,7 +223,7 @@ router.post("/finish", upload.single("imagen"), async (req, res) => {
     }
     try {
         // Atualiza o status e já retorna o documento
-        const returnData = await returnModel_1.ReturnModel.findOneAndUpdate({ return_sn }, { status: "Concluida" }, { new: true }).lean();
+        const returnData = await returnModel_1.ReturnModel.findOneAndUpdate({ return_sn }, { status: "RECEBIDO" }, { new: true }).lean();
         if (!returnData) {
             return res.status(404).json({ success: false, error: "Falha em achar a devolução" });
         }

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const shopModel_1 = require("../../models/shopModel");
+const returnModel_1 = require("../../models/returnModel");
 const crypto_1 = __importDefault(require("crypto"));
 const refreshAccessToken_1 = __importDefault(require("../refreshAccessToken"));
 const partner_id = process.env.PARTNER_ID;
@@ -39,11 +40,10 @@ async function UpdateRetuns(shop_id) {
                 partner_id,
                 shop_id,
                 page_no: "1",
-                page_size: "50",
+                page_size: "100",
                 timestamp: ts,
                 sign,
                 update_time_from: create_from,
-                update_time_to: create_to,
             };
             const url = `${host}${path}?${new URLSearchParams(params).toString()}`;
             const controller = new AbortController();
@@ -65,6 +65,23 @@ async function UpdateRetuns(shop_id) {
         const returnList = data?.response?.return || [];
         if (!Array.isArray(returnList)) {
             console.log(`Resposta inválida para loja ${shop_id}`);
+        }
+        //Atualizar O status da devolucoa
+        //Se ja tiver o numero de transporte ele atualiza para 'EM TRANSPOTER'
+        for (const r of returnList) {
+            if (r.tracking_number) {
+                const updateReturn = await returnModel_1.ReturnModel.findOneAndUpdate({
+                    return_sn: r.return_sn,
+                    shop_id,
+                    status: "SOLICITADA"
+                }, {
+                    $set: {
+                        status: "EM TRANSPORTE",
+                        status_shopee: r.status,
+                    },
+                }, { new: true });
+                console.log(updateReturn); // null se não encontrou ou já não estava SOLICITADA
+            }
         }
     }
     catch (error) {

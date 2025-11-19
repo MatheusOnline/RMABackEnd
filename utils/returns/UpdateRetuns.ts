@@ -1,4 +1,5 @@
 import { ShopModel } from "../../models/shopModel";
+import { ReturnModel } from "../../models/returnModel";
 import crypto from "crypto";
 import refreshAccessToken from "../refreshAccessToken";
 
@@ -43,11 +44,11 @@ async function UpdateRetuns(shop_id:string){
                 partner_id,
                 shop_id,
                 page_no: "1",
-                page_size: "50",
+                page_size: "100",
                 timestamp: ts,
                 sign,
                 update_time_from: create_from,
-                update_time_to: create_to,
+                
             };
 
             const url = `${host}${path}?${new URLSearchParams(params).toString()}`;
@@ -78,11 +79,37 @@ async function UpdateRetuns(shop_id:string){
         }
 
         const returnList = data?.response?.return || [];
-
+       
         if (!Array.isArray(returnList)) {
             console.log(`Resposta inválida para loja ${shop_id}`);
             
         }
+
+        //Atualizar O status da devolucoa
+        //Se ja tiver o numero de transporte ele atualiza para 'EM TRANSPOTER'
+        for (const r of returnList) {
+            if (r.tracking_number) {
+                const updateReturn = await ReturnModel.findOneAndUpdate(
+                    { 
+                        return_sn: r.return_sn, 
+                        shop_id, 
+                        status: "SOLICITADA" 
+                    },
+                    {
+                        $set: {
+                            status: "EM TRANSPORTE",
+                            status_shopee: r.status,
+                        },
+                    },
+                    { new: true }
+                );
+
+                console.log(updateReturn); // null se não encontrou ou já não estava SOLICITADA
+            }
+        }
+        
+
+        
     }catch(error){
         return console.log(error)
     }

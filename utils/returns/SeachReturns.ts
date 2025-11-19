@@ -48,7 +48,7 @@ async function SeachReturns(shop_id: string) {
                 timestamp: ts,
                 sign,
                 create_time_from: create_from,
-                create_time_to: create_to,
+               
             };
 
             const url = `${host}${path}?${new URLSearchParams(params).toString()}`;
