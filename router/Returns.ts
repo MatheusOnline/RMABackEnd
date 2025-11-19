@@ -59,7 +59,7 @@ router.get("/cron/get", async (req, res) => {
             console.log(`Buscando devoluções da loja: ${shop_id}`);
 
             await SeachReturns(shop_id);
-
+             await UpdateRetuns(shop_id)
         }
 
         return res.send("Cron OK — todas as lojas processadas");
@@ -101,7 +101,7 @@ router.post("/save", async (req, res) =>{
         const { shop_id } = req.body;
 
         await SeachReturns(shop_id)
-      
+       
         return res.status(200).json({success:false, message:"Salvo"})
     }catch(error){
         console.log(error)
