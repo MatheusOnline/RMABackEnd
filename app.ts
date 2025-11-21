@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import returnRoutes from "./router/Returns"
 import tokenRoutes from "./router/Tokens"
 import shopRoutes from "./router/Shop"
-
+import dashboard from "./router/Dashboard"
 
 
 import path from "path";
@@ -42,7 +42,7 @@ mongoose.connect(uri)
 app.use("/return", returnRoutes)
 app.use("/token", tokenRoutes)
 app.use("/shop", shopRoutes)
-
+app.use("/dashboard", dashboard)
 
 
 
