@@ -36,6 +36,7 @@ router.get("/cron/get", async (req, res) => {
             const shop_id = String(shop.shop_id);
             console.log(`Buscando devoluções da loja: ${shop_id}`);
             await (0, SeachReturns_1.default)(shop_id);
+            await (0, UpdateRetuns_1.default)(shop_id);
         }
         return res.send("Cron OK — todas as lojas processadas");
     }
