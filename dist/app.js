@@ -13,6 +13,7 @@ const Returns_1 = __importDefault(require("./router/Returns"));
 const Tokens_1 = __importDefault(require("./router/Tokens"));
 const Shop_1 = __importDefault(require("./router/Shop"));
 const Dashboard_1 = __importDefault(require("./router/Dashboard"));
+const Login_1 = __importDefault(require("./router/Login"));
 const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -33,6 +34,7 @@ app.use("/return", Returns_1.default);
 app.use("/token", Tokens_1.default);
 app.use("/shop", Shop_1.default);
 app.use("/dashboard", Dashboard_1.default);
+app.use("/login", Login_1.default);
 //====================//
 //  ROTAS DE TESTES   //
 //====================//

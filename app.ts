@@ -11,7 +11,7 @@ import returnRoutes from "./router/Returns"
 import tokenRoutes from "./router/Tokens"
 import shopRoutes from "./router/Shop"
 import dashboard from "./router/Dashboard"
-
+import loginRouter from "./router/Login"
 
 import path from "path";
 
@@ -43,7 +43,7 @@ app.use("/return", returnRoutes)
 app.use("/token", tokenRoutes)
 app.use("/shop", shopRoutes)
 app.use("/dashboard", dashboard)
-
+app.use("/login", loginRouter)
 
 
 
