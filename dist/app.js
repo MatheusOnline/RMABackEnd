@@ -17,7 +17,9 @@ const Login_1 = __importDefault(require("./router/Login"));
 const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
-    origin: "https://rma-controller.vercel.app",
+    origin: ["http://localhost:5173",
+        "https://rma-controller.vercel.app"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
