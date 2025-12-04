@@ -8,6 +8,7 @@ const userModel_1 = require("../models/userModel");
 const dotenv_1 = __importDefault(require("dotenv"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const auth_1 = require("../utils/auth");
 const router = express_1.default.Router();
 dotenv_1.default.config();
 //====================LOGIN=======================//
@@ -35,6 +36,9 @@ router.post("/login", async (req, res) => {
     catch (error) {
         return res.status(500).json({ error, success: false });
     }
+});
+router.get("/checktoken", auth_1.auth, (req, res) => {
+    res.json({ valid: true });
 });
 //====================CADASTRAR=======================//
 router.post("/register", async (req, res) => {

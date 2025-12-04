@@ -3,6 +3,7 @@ import { UserModel } from "../models/userModel";
 import dotenv from "dotenv"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import { auth } from "../utils/auth";
 const router = express.Router()
 
 dotenv.config()
@@ -44,6 +45,9 @@ router.post("/login", async (req, res) => {
     }
 })
 
+router.get("/checktoken", auth, (req, res) => {
+  res.json({ valid: true })
+})
 
 
 //====================CADASTRAR=======================//
