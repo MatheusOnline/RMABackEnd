@@ -20,7 +20,7 @@ const host = process.env.HOST;
 //=======ROTA PARA GERAR O TOKEN DA LOJA========//
 router.post("/generate", async (req, res) => {
     try {
-        const { code, shop_id } = req.body;
+        const { code, shop_id, user_id } = req.body;
         if (!code || !shop_id)
             return res.status(400).json("Code e shop_id não pode ser nulo");
         if (!process.env.PARTNER_ID || !process.env.HOST)
@@ -44,6 +44,7 @@ router.post("/generate", async (req, res) => {
         if (shop instanceof shopModel_1.ShopModel) {
             shop.access_token = data.access_token;
             shop.refresh_token = data.refresh_token;
+            shop.user_id = user_id;
             await shop.save();
         }
         else {
