@@ -28,7 +28,7 @@ const host = process.env.HOST;
 //=======ROTA PARA GERAR O TOKEN DA LOJA========//
 router.post("/generate", async (req,res) =>{
     try{ 
-        const { code, shop_id } = req.body;
+        const { code, shop_id, user_id } = req.body;
 
         
         if(!code || !shop_id)   
@@ -63,6 +63,7 @@ router.post("/generate", async (req,res) =>{
         if (shop instanceof ShopModel) {
             shop.access_token = data.access_token;
             shop.refresh_token = data.refresh_token;
+            shop.user_id =  user_id;
             await shop.save();
         } else {
             console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
