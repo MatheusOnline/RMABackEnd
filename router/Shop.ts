@@ -90,19 +90,32 @@ router.post("/datas", async (req, res) =>{
             }
 
             await shop.save();
-            // SALVA A LOJA NO USUÁRIO
-           await UserModel.findByIdAndUpdate(
-            shop.user_id,
+          // 1. Tenta atualizar caso já exista
+            const updated = await UserModel.updateOne(
+            { _id: shop.user_id, "shops.shop_id": shop_id },
             {
-                $addToSet: {
-                shops: {
-                    shop_id: shop_id,
-                    name: data.response.shop_name || "Loja Shopee",
-                    img: data.response.shop_logo || ""
-                }
+                $set: {
+                "shops.$.name": data.response.shop_name,
+                "shops.$.img": data.response.shop_logo
                 }
             }
             );
+
+            // 2. Se não atualizou ninguém, então adiciona
+            if (updated.matchedCount === 0) {
+            await UserModel.updateOne(
+                { _id: shop.user_id },
+                {
+                $push: {
+                    shops: {
+                    shop_id: shop_id,
+                    name: data.response.shop_name || "Loja Shopee",
+                    img: data.response.shop_logo || ""
+                    }
+                }
+                }
+            );
+            }
 
 
             

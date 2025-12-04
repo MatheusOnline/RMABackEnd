@@ -28,7 +28,7 @@ router.post("/shoplist", async (req, res) => {
 
 router.get("/userlist", async (req, res) =>{
     const users = await UserModel.find()
-
+    
     res.send(users)
 })
 
