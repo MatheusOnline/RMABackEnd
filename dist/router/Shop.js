@@ -66,10 +66,11 @@ router.post("/datas", async (req, res) => {
             await shop.save();
             // SALVA A LOJA NO USUÁRIO
             await userModel_1.UserModel.findByIdAndUpdate(shop.user_id, {
-                $push: {
+                $addToSet: {
                     shops: {
                         shop_id: shop_id,
                         name: data.response.shop_name || "Loja Shopee",
+                        img: data.response.shop_logo || ""
                     }
                 }
             });
