@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IShop extends Document {
   shop_id: string;
   user_id: string;
+  img: string;
   name: string;
   dayCount?: string;
   access_token?: string;
@@ -11,6 +12,7 @@ export interface IShop extends Document {
 
 const shopSchema = new Schema<IShop>({
   shop_id: { type: String, required: true, unique: true },
+  img: {type: String},
   user_id: {type: String},
   name: {type: String, default: ""},
   dayCount: { type: String },

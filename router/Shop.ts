@@ -84,6 +84,8 @@ router.post("/datas", async (req, res) =>{
             
             if (data.response.shop_name) {
                 shop.name = data.response.shop_name;
+                shop.img = data.response.shop_logo;
+
             }
 
             await shop.save();

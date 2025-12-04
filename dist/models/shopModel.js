@@ -37,6 +37,7 @@ exports.ShopModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const shopSchema = new mongoose_1.Schema({
     shop_id: { type: String, required: true, unique: true },
+    img: { type: String },
     user_id: { type: String },
     name: { type: String, default: "" },
     dayCount: { type: String },
