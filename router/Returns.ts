@@ -11,7 +11,7 @@ import storage from "../config/multerConfig";
 import { ReturnModel } from "../models/returnModel";
 import { FinishModel } from "../models/finishModel";
 import { ShopModel } from "../models/shopModel";
-
+import { UserModel } from "../models/userModel";
 
 //======FUNCOES========//
 import CreateReturn from "../utils/dbUtius/createReturn";
@@ -130,29 +130,49 @@ router.post("/update", async (req, res)=>{
 })
 
 //
-//Rota para buscara as devolucoes no banco de dados
+//Rota para buscar a as devolucoes no banco de dados
 //Retorna as devolucoes para o frontend
 // 
 router.post("/get", async (req, res) => {
-    try {
-        const { shop_id } = req.body;
-        if (!shop_id)
-            return res.status(400).json({ error: "shop_id não pode ser nulo" });
+  try {
+    const { user_id } = req.body;
 
-         const listReturns = await ReturnModel.find({ shop_id }).limit(500).lean();
+    if (!user_id)
+      return res.status(400).json({ error: "user_id não pode ser nulo" });
 
-        if(!Array.isArray(listReturns)){
-            return res.status(500).json({ error: "Resposta invalida da Shopee"})
-        }
+    const user = await UserModel.findById(user_id).lean();
 
-      
-        return res.json({ success: true, return_list: listReturns });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error });
+    if (!user || !user.shops || user.shops.length === 0) {
+      return res.status(404).json({ error: "Usuário sem lojas cadastradas" });
     }
+
+    const shopIds = user.shops.map((shop: any) => shop.shop_id);
+
+    const listReturns = await ReturnModel.find({
+      shop_id: { $in: shopIds }
+    })
+      .limit(500)
+      .lean();
+
+    // AGRUPA AS DEVOLUÇÕES POR LOJA
+    const returnsByShop = user.shops.map((shop: any) => ({
+      shop_id: shop.shop_id,
+      shop_name: shop.name,
+      devolucoes: listReturns.filter((ret: any) => ret.shop_id == shop.shop_id)
+    }));
+
+    return res.status(200).json({
+      success: true,
+      shops: returnsByShop
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Erro interno" });
+  }
 });
+
+
 
 //
 // Rota para procurar Devolucos no banco de dados 

@@ -69,7 +69,7 @@ router.post("/datas", async (req, res) => {
                 $push: {
                     shops: {
                         shop_id: shop_id,
-                        name: data.shop_name || "Loja Shopee",
+                        name: data.response.shop_name || "Loja Shopee",
                     }
                 }
             });

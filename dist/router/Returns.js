@@ -13,6 +13,7 @@ const multerConfig_1 = __importDefault(require("../config/multerConfig"));
 const returnModel_1 = require("../models/returnModel");
 const finishModel_1 = require("../models/finishModel");
 const shopModel_1 = require("../models/shopModel");
+const userModel_1 = require("../models/userModel");
 const timestamp_1 = __importDefault(require("../utils/timestamp"));
 const refreshAccessToken_1 = __importDefault(require("../utils/refreshAccessToken"));
 const SeachReturns_1 = __importDefault(require("../utils/returns/SeachReturns"));
@@ -91,23 +92,38 @@ router.post("/update", async (req, res) => {
     }
 });
 //
-//Rota para buscara as devolucoes no banco de dados
+//Rota para buscar a as devolucoes no banco de dados
 //Retorna as devolucoes para o frontend
 // 
 router.post("/get", async (req, res) => {
     try {
-        const { shop_id } = req.body;
-        if (!shop_id)
-            return res.status(400).json({ error: "shop_id não pode ser nulo" });
-        const listReturns = await returnModel_1.ReturnModel.find({ shop_id }).limit(500).lean();
-        if (!Array.isArray(listReturns)) {
-            return res.status(500).json({ error: "Resposta invalida da Shopee" });
+        const { user_id } = req.body;
+        if (!user_id)
+            return res.status(400).json({ error: "user_id não pode ser nulo" });
+        const user = await userModel_1.UserModel.findById(user_id).lean();
+        if (!user || !user.shops || user.shops.length === 0) {
+            return res.status(404).json({ error: "Usuário sem lojas cadastradas" });
         }
-        return res.json({ success: true, return_list: listReturns });
+        const shopIds = user.shops.map((shop) => shop.shop_id);
+        const listReturns = await returnModel_1.ReturnModel.find({
+            shop_id: { $in: shopIds }
+        })
+            .limit(500)
+            .lean();
+        // AGRUPA AS DEVOLUÇÕES POR LOJA
+        const returnsByShop = user.shops.map((shop) => ({
+            shop_id: shop.shop_id,
+            shop_name: shop.name,
+            devolucoes: listReturns.filter((ret) => ret.shop_id == shop.shop_id)
+        }));
+        return res.status(200).json({
+            success: true,
+            shops: returnsByShop
+        });
     }
     catch (error) {
         console.error(error);
-        return res.status(500).json({ error });
+        return res.status(500).json({ error: "Erro interno" });
     }
 });
 //
