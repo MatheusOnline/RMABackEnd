@@ -48,7 +48,7 @@ router.post("/generate", async (req, res) => {
             await shop.save();
         }
         else {
-            console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
+            console.error("CreateShop  não retornou uma instância válida de ShopModel:", shop);
         }
         return res.status(200).json(data);
     }

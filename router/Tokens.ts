@@ -62,11 +62,11 @@ router.post("/generate", async (req,res) =>{
         
         if (shop instanceof ShopModel) {
             shop.access_token = data.access_token;
-            shop.refresh_token = data.refresh_token;
+            shop.refresh_token = data.refresh_token;   
             shop.user_id =  user_id;
             await shop.save();
         } else {
-            console.error("CreateShop não retornou uma instância válida de ShopModel:", shop);
+            console.error("CreateShop  não retornou uma instância válida de ShopModel:", shop);
         }
 
         
