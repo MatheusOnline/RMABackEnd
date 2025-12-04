@@ -38,6 +38,7 @@ router.post("/login", async (req, res) => {
             success: true,
             token,
             user_id,
+            user_name:user
         })
 
     } catch (error) {
