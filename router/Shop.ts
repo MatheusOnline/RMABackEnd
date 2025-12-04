@@ -102,4 +102,6 @@ router.post("/datas", async (req, res) =>{
 })
 
 
+
+
 export default router;
