@@ -8,7 +8,7 @@ import Sign from "../utils/sign";
 import Timestamp from "../utils/timestamp";
 import CreateShop from "../utils/dbUtius/createShop";
 import { ShopModel } from "../models/shopModel";
-
+import { UserModel } from "../models/userModel";
 //====CONFIGURACOES====//
 const router = express.Router();
 dotenv.config();
@@ -60,11 +60,25 @@ router.post("/generate", async (req,res) =>{
 
         const shop = await CreateShop({shop_id})
         
+        
+
         if (shop instanceof ShopModel) {
             shop.access_token = data.access_token;
             shop.refresh_token = data.refresh_token;   
             shop.user_id =  user_id;
             await shop.save();
+
+
+            // SALVA A LOJA NO USUÁRIO
+            await UserModel.findByIdAndUpdate(user_id, {
+                $push: {
+                shops: {
+                    shop_id: shop_id,
+                    name: data.shop_name || "Loja Shopee",
+                }
+                }
+            });
+
         } else {
             console.error("CreateShop  não retornou uma instância válida de ShopModel:", shop);
         }

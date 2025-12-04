@@ -1,12 +1,14 @@
 import express from "express"
 import { ShopModel } from "../models/shopModel"
+import { UserModel } from "../models/userModel"
+
 
 const router = express.Router()
 
 router.post("/shoplist", async (req, res) => {
   try {
     const { user_id } = req.body
-    
+
     if (!user_id) {
       return res.status(400).json({ success: false, message: "user_id é obrigatório" })
     }
@@ -24,6 +26,10 @@ router.post("/shoplist", async (req, res) => {
   }
 })
 
+router.get("/userlist", async (req, res) =>{
+    const users = await UserModel.find()
 
+    res.send(users)
+})
 
 export default router

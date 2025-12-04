@@ -10,6 +10,7 @@ const sign_1 = __importDefault(require("../utils/sign"));
 const timestamp_1 = __importDefault(require("../utils/timestamp"));
 const createShop_1 = __importDefault(require("../utils/dbUtius/createShop"));
 const shopModel_1 = require("../models/shopModel");
+const userModel_1 = require("../models/userModel");
 //====CONFIGURACOES====//
 const router = express_1.default.Router();
 dotenv_1.default.config();
@@ -46,6 +47,15 @@ router.post("/generate", async (req, res) => {
             shop.refresh_token = data.refresh_token;
             shop.user_id = user_id;
             await shop.save();
+            // SALVA A LOJA NO USUÁRIO
+            await userModel_1.UserModel.findByIdAndUpdate(user_id, {
+                $push: {
+                    shops: {
+                        shop_id: shop_id,
+                        name: data.shop_name || "Loja Shopee",
+                    }
+                }
+            });
         }
         else {
             console.error("CreateShop  não retornou uma instância válida de ShopModel:", shop);

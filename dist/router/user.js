@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const shopModel_1 = require("../models/shopModel");
+const userModel_1 = require("../models/userModel");
 const router = express_1.default.Router();
 router.post("/shoplist", async (req, res) => {
     try {
@@ -21,5 +22,9 @@ router.post("/shoplist", async (req, res) => {
     catch {
         return res.status(500).json({ success: false });
     }
+});
+router.get("/userlist", async (req, res) => {
+    const users = await userModel_1.UserModel.find();
+    res.send(users);
 });
 exports.default = router;
