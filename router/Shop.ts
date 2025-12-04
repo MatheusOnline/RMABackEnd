@@ -6,6 +6,7 @@ import crypto from "crypto";
 import Timestamp from "../utils/timestamp";
 import CreateShop from "../utils/dbUtius/createShop";
 import refreshAccessToken from "../utils/refreshAccessToken";
+import { UserModel } from "../models/userModel";
 //====CONFIGURACOES====//
 const router = express.Router();
 dotenv.config();
@@ -89,6 +90,18 @@ router.post("/datas", async (req, res) =>{
             }
 
             await shop.save();
+            // SALVA A LOJA NO USUÁRIO
+            await UserModel.findByIdAndUpdate(shop.user_id, {
+                $push: {
+                shops: {
+                    shop_id: shop_id,
+                    name: data.shop_name || "Loja Shopee",
+                }
+                }
+            });
+
+
+            
             return res.status(200).json(data);
 
         }catch (error) {

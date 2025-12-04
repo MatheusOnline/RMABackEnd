@@ -10,6 +10,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const timestamp_1 = __importDefault(require("../utils/timestamp"));
 const createShop_1 = __importDefault(require("../utils/dbUtius/createShop"));
 const refreshAccessToken_1 = __importDefault(require("../utils/refreshAccessToken"));
+const userModel_1 = require("../models/userModel");
 //====CONFIGURACOES====//
 const router = express_1.default.Router();
 dotenv_1.default.config();
@@ -63,6 +64,15 @@ router.post("/datas", async (req, res) => {
                 shop.img = data.response.shop_logo;
             }
             await shop.save();
+            // SALVA A LOJA NO USUÁRIO
+            await userModel_1.UserModel.findByIdAndUpdate(shop.user_id, {
+                $push: {
+                    shops: {
+                        shop_id: shop_id,
+                        name: data.shop_name || "Loja Shopee",
+                    }
+                }
+            });
             return res.status(200).json(data);
         }
         catch (error) {
