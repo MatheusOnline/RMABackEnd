@@ -282,6 +282,10 @@ router.post("/scan", async (req, res) => {
             return res.status(404).json({success: false, error: "Nenhuma devolução encontrada"});
         }
 
+        if(returnData.status === "RECEBIDO"){
+            return res.status(400).json({ success: false, error: "Devolução já finalizada" });
+        }
+
         // Busca loja
         const shop = await ShopModel.findOne({ shop_id: returnData.shop_id }).lean();
 
