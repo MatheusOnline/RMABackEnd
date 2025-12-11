@@ -69,7 +69,7 @@ app.get("/stores", async (req, res) => {
 
 app.get("/returns", async (req, res) => {
   try {
-    const rmas = await ReturnModel.find();
+    const rmas = await FinishModel.find();
 
     res.send(rmas)
   } catch (err) {

@@ -309,6 +309,9 @@ router.post("/scan", async (req, res) => {
 // E salvar no banco as informacoes 
 //
 router.post("/finish", upload.array("photos", 10), async (req, res) => {
+    console.log("FILES RECEBIDOS:", req.files);
+    console.log("BODY RECEBIDO:", req.body);
+
     const { return_sn, observation } = req.body;
 
     if (!return_sn) {
@@ -326,15 +329,14 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
             return res.status(404).json({ success: false, error: "Falha em achar a devolução" });
         }
 
-        // Agora usa req.files (lista)
-         const files = Array.isArray(req.files) ? req.files : [];
+        const files = Array.isArray(req.files) ? req.files : [];
 
         const filePaths = files.map(f => `/uploads/${f.filename}`);
 
         await FinishModel.create({
             return_id: returnData.return_sn,
             observation: observation || null,
-            imagen: filePaths,    // <-- SALVA TODAS AS FOTOS
+            imagen: filePaths,
             data_finish: Timestamp()
         });
 
@@ -344,8 +346,8 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Erro na rota /finish:", error);
-        return res.status(500).json({ success: false, error: "Erro no servidor" });
+        console.error("Erro REAL na rota /finish:", error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
