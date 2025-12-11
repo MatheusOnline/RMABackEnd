@@ -329,7 +329,7 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
         if(returnData.status === "RECEBIDO"){
             return res.status(400).json({ success: false, error: "Devolução já finalizada" });
         }
-
+ 
         const files = Array.isArray(req.files) ? req.files : [];
 
         const filePaths = files.map(f => `/uploads/${f.filename}`);
