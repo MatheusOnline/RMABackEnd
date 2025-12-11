@@ -309,9 +309,6 @@ router.post("/scan", async (req, res) => {
 // E salvar no banco as informacoes 
 //
 router.post("/finish", upload.array("photos", 10), async (req, res) => {
-    console.log("FILES RECEBIDOS:", req.files);
-    console.log("BODY RECEBIDO:", req.body);
-
     const { return_sn, observation } = req.body;
 
     if (!return_sn) {
@@ -327,6 +324,10 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
 
         if (!returnData) {
             return res.status(404).json({ success: false, error: "Falha em achar a devolução" });
+        }
+
+        if(returnData.status === "RECEBIDO"){
+            return res.status(400).json({ success: false, error: "Devolução já finalizada" });
         }
 
         const files = Array.isArray(req.files) ? req.files : [];
@@ -347,7 +348,7 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
 
     } catch (error) {
         console.error("Erro REAL na rota /finish:", error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: "Erro interno no servidor"});
     }
 });
 
