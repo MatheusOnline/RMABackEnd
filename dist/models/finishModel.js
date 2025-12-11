@@ -8,7 +8,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const finishSchema = new mongoose_1.default.Schema({
     return_id: { type: String },
     observation: { type: String, default: "" },
-    imagen: { type: String, default: "" },
+    imagen: { type: [String], default: [] },
     data_finish: { type: String }
 });
 exports.FinishModel = mongoose_1.default.model("finish", finishSchema);

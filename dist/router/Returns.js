@@ -233,27 +233,29 @@ router.post("/scan", async (req, res) => {
 // Rota para finalizar a devoluçao 
 // E salvar no banco as informacoes 
 //
-router.post("/finish", upload.single("imagen"), async (req, res) => {
+router.post("/finish", upload.array("photos", 10), async (req, res) => {
     const { return_sn, observation } = req.body;
     if (!return_sn) {
         return res.status(400).json({ success: false, error: "return_sn é obrigatório" });
     }
     try {
-        // Atualiza o status e já retorna o documento
         const returnData = await returnModel_1.ReturnModel.findOneAndUpdate({ return_sn }, { status: "RECEBIDO" }, { new: true }).lean();
         if (!returnData) {
             return res.status(404).json({ success: false, error: "Falha em achar a devolução" });
         }
-        // Caminho da imagem (se enviada)
-        const filePath = req.file ? `/uploads/${req.file.filename}` : null;
-        // Cria o registro da conclusão
+        // Agora usa req.files (lista)
+        const files = Array.isArray(req.files) ? req.files : [];
+        const filePaths = files.map(f => `/uploads/${f.filename}`);
         await finishModel_1.FinishModel.create({
             return_id: returnData.return_sn,
             observation: observation || null,
-            imagen: filePath,
+            imagen: filePaths, // <-- SALVA TODAS AS FOTOS
             data_finish: (0, timestamp_1.default)()
         });
-        return res.status(200).json({ success: true, message: "Devolução concluída", });
+        return res.status(200).json({
+            success: true,
+            message: "Devolução concluída"
+        });
     }
     catch (error) {
         console.error("Erro na rota /finish:", error);
