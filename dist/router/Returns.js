@@ -210,6 +210,9 @@ router.post("/scan", async (req, res) => {
         if (!returnData) {
             return res.status(404).json({ success: false, error: "Nenhuma devolução encontrada" });
         }
+        if (returnData.status === "RECEBIDO") {
+            return res.status(400).json({ success: false, error: "Devolução já finalizada" });
+        }
         // Busca loja
         const shop = await shopModel_1.ShopModel.findOne({ shop_id: returnData.shop_id }).lean();
         if (!shop) {
@@ -243,13 +246,15 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
         if (!returnData) {
             return res.status(404).json({ success: false, error: "Falha em achar a devolução" });
         }
-        // Agora usa req.files (lista)
+        if (returnData.status === "RECEBIDO") {
+            return res.status(400).json({ success: false, error: "Devolução já finalizada" });
+        }
         const files = Array.isArray(req.files) ? req.files : [];
         const filePaths = files.map(f => `/uploads/${f.filename}`);
         await finishModel_1.FinishModel.create({
             return_id: returnData.return_sn,
             observation: observation || null,
-            imagen: filePaths, // <-- SALVA TODAS AS FOTOS
+            imagen: filePaths,
             data_finish: (0, timestamp_1.default)()
         });
         return res.status(200).json({
@@ -258,8 +263,8 @@ router.post("/finish", upload.array("photos", 10), async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Erro na rota /finish:", error);
-        return res.status(500).json({ success: false, error: "Erro no servidor" });
+        console.error("Erro REAL na rota /finish:", error);
+        return res.status(500).json({ success: false, error: "Erro interno no servidor" });
     }
 });
 exports.default = router;

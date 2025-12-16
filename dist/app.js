@@ -6,7 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const returnModel_1 = require("./models/returnModel");
-const shopModel_1 = require("./models/shopModel");
+const finishModel_1 = require("./models/finishModel");
+const userModel_1 = require("./models/userModel");
 const mongoose_1 = __importDefault(require("mongoose"));
 //=======IMPORTANDO ROTAS========//
 const Returns_1 = __importDefault(require("./router/Returns"));
@@ -44,7 +45,7 @@ app.use("/user", user_1.default);
 //====================//
 app.get("/stores", async (req, res) => {
     try {
-        const rmas = await shopModel_1.ShopModel.find();
+        const rmas = await userModel_1.UserModel.find();
         res.send(rmas);
     }
     catch (err) {
@@ -54,7 +55,7 @@ app.get("/stores", async (req, res) => {
 });
 app.get("/returns", async (req, res) => {
     try {
-        const rmas = await returnModel_1.ReturnModel.find();
+        const rmas = await finishModel_1.FinishModel.find();
         res.send(rmas);
     }
     catch (err) {
@@ -71,6 +72,10 @@ app.get("/ClearReturns", async (req, res) => {
         console.error(err);
         res.status(500).send("Erro ao buscar RMAs");
     }
+});
+app.get("/ip", async (req, res) => {
+    const r = await fetch("https://api.ipify.org?format=json");
+    res.json(await r.json());
 });
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server running on port ${port}`));

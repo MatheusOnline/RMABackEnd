@@ -4,6 +4,7 @@ import cors from "cors"
 import { ReturnModel } from "./models/returnModel";
 import { ShopModel } from "./models/shopModel";
 import { FinishModel } from "./models/finishModel";
+import { UserModel } from "./models/userModel";
 import mongoose from "mongoose";
 
 //=======IMPORTANDO ROTAS========//
@@ -57,7 +58,7 @@ app.use("/user", userRouter)
 
 app.get("/stores", async (req, res) => {
   try {
-    const rmas = await ShopModel.find();
+    const rmas = await UserModel.find();
 
     res.send(rmas)
   } catch (err) {
@@ -91,5 +92,11 @@ app.get("/ClearReturns", async (req, res) => {
     res.status(500).send("Erro ao buscar RMAs");
   }
 });
+
+app.get("/ip", async (req, res) => {
+  const r = await fetch("https://api.ipify.org?format=json");
+  res.json(await r.json());
+});
+
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
