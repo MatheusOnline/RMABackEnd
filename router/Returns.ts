@@ -204,13 +204,20 @@ router.post("/seach", async (req, res) =>{
 // Atraves do numero de da devoluçao
 //
 router.post("/tracking", async (req, res) =>{
-    const { return_sn, shop_id} = req.body
+    const { return_sn} = req.body
     
-    if (!return_sn || !shop_id) 
+    if (!return_sn ) 
         return res.status(400).json({ error: "return_sn e shop_id são obrigatórios",sucesso: false });
     
     try {
-        const shop = await ShopModel.findOne({ shop_id }).lean();
+        const returnContent = await ReturnModel.findOne({return_sn})
+        if(!returnContent)
+            return
+        const shop_id = returnContent.shop_id;
+        const shop = await ShopModel.findOne({shop_id})
+        
+        
+
         if(!shop)
              return res.status(400).json({ error: "Falha em buscar a loja", success: false});
         
@@ -218,7 +225,7 @@ router.post("/tracking", async (req, res) =>{
         const path = "/api/v2/returns/get_reverse_tracking_info";
         const ts = Timestamp();
         let access_token = (shop as any).access_token
-        let sign = Sign({path, ts, access_token, shop_id})
+        let sign = Sign({path, ts, access_token,  shop_id: Number(shop_id),})
 
 
         const params = {
