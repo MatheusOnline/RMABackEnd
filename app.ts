@@ -14,7 +14,7 @@ import shopRoutes from "./router/Shop"
 import dashboard from "./router/Dashboard"
 import loginRouter from "./router/Login"
 import userRouter from "./router/user"
-
+import webhooks from "./router/Webhooks"
 import path from "path";
 
 
@@ -49,7 +49,7 @@ app.use("/shop", shopRoutes)
 app.use("/dashboard", dashboard)
 app.use("/login", loginRouter )
 app.use("/user", userRouter)
-
+app.use("/webhooks", webhooks)
 
 
 //====================//
