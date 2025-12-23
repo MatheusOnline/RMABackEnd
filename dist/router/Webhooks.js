@@ -41,6 +41,7 @@ router.post("/shopee", async (req, res) => {
                 console.log("Pedido:", req.body.data.ordersn);
                 console.log("Shop ID:", req.body.shop_id);
                 console.log("Loja:", shopName?.name);
+                return res.status(200);
             default:
                 console.log("📦 EVENTO DESCONHECIDO DA SHOPEE");
                 console.log(req.body);
