@@ -38,12 +38,20 @@ router.post("/shopee", async (req, res) => {
       case "TO_RETURN":
         const shop = await SeachShop(req.body.shop_id);
 
-        console.log("🚨 FALHA NA ENTREGA / DEVOLUÇÃO INICIADA");
+        console.log("🚨  DEVOLUÇÃO INICIADA");
         console.log("Pedido:", req.body.data.ordersn);
         console.log("Shop ID:", req.body.shop_id);
-        console.log("Loja:", shop);
+        console.log("Loja:", shop?.name);
 
         return res.status(200);
+
+      case "CANCELLED":
+        const shopName = await SeachShop(req.body.shop_id)
+        
+        console.log("🚨CANCELADO");
+        console.log("Pedido:", req.body.data.ordersn);
+        console.log("Shop ID:", req.body.shop_id);
+        console.log("Loja:", shopName?.name);
 
       default:
         console.log("📦 EVENTO DESCONHECIDO DA SHOPEE");
