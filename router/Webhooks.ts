@@ -14,6 +14,25 @@ router.post("/shopee", (req, res) => {
     });
   }
 
+  if(req.body.code === 3){
+    switch (req.body.data.status) {
+        case "READY_TO_SHIP":
+            return res.status(200)
+            
+        case "UNPAID":
+            return res.status(200)
+
+        case "TO_CONFIRM_RECEIVE":
+            return res.status(200)
+
+        case "SHIPPED":
+            return res.status(200)
+            
+        default:
+            break;
+    }
+  }
+
   // eventos normais
   res.status(200).json({ ok: true });
 });
