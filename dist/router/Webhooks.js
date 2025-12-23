@@ -11,43 +11,25 @@ async function SeachShop(shop_id) {
     if (shop)
         return shop;
 }
-router.post("/shopee", async (req, res) => {
-    // 🔐 verificação Shopee
-    if (req.body.code === 0) {
-        return res.status(200).json({
-            code: 0,
-            message: "success"
-        });
+router.post("/shopee", (req, res) => {
+    // 🚀 responde imediatamente
+    res.status(200).json({ success: true });
+    // 👇 tudo abaixo não afeta mais a Shopee
+    if (req.body.code === 0)
+        return;
+    if (req.body.code !== 3 || !req.body.data?.status)
+        return;
+    const { status, ordersn } = req.body.data;
+    const shopId = req.body.shop_id;
+    if (status === "TO_RETURN" || status === "CANCELLED") {
+        // processamento em background
+        (async () => {
+            const shop = await SeachShop(shopId);
+            console.log("🚨 EVENTO CRÍTICO");
+            console.log("Status:", status);
+            console.log("Pedido:", ordersn);
+            console.log("Loja:", shop?.name);
+        })();
     }
-    if (req.body.code === 3 && req.body.data?.status) {
-        switch (req.body.data.status) {
-            case "READY_TO_SHIP":
-            case "UNPAID":
-            case "TO_CONFIRM_RECEIVE":
-            case "SHIPPED":
-            case "PROCESSED":
-            case "COMPLETED":
-                return res.status(200);
-            case "TO_RETURN":
-                const shop = await SeachShop(req.body.shop_id);
-                console.log("🚨  DEVOLUÇÃO INICIADA");
-                console.log("Pedido:", req.body.data.ordersn);
-                console.log("Shop ID:", req.body.shop_id);
-                console.log("Loja:", shop?.name);
-                return res.status(200);
-            case "CANCELLED":
-                const shopName = await SeachShop(req.body.shop_id);
-                console.log("🚨CANCELADO");
-                console.log("Pedido:", req.body.data.ordersn);
-                console.log("Shop ID:", req.body.shop_id);
-                console.log("Loja:", shopName?.name);
-                return res.status(200);
-            default:
-                console.log("📦 EVENTO DESCONHECIDO DA SHOPEE");
-                console.log(req.body);
-                return res.status(200).json({ received: true });
-        }
-    }
-    return res.status(200).json({ ok: true });
 });
 exports.default = router;
