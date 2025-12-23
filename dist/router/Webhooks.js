@@ -25,6 +25,8 @@ router.post("/shopee", async (req, res) => {
             case "UNPAID":
             case "TO_CONFIRM_RECEIVE":
             case "SHIPPED":
+            case "PROCESSED":
+            case "COMPLETED":
                 return res.status(200);
             case "TO_RETURN":
                 const shop = await SeachShop(req.body.shop_id);
