@@ -72,15 +72,18 @@ router.post("/shopee", (req, res) => {
         return;
     const { status, ordersn } = req.body.data;
     const shop = req.body.shop_id;
-    if (status === "TO_RETURN" || status === "CANCELLED") {
-        // processamento em background
+    if (status === "CANCELLED") {
         (async () => {
-            const shop_id = shop;
-            const order_sn = ordersn;
-            console.log("🚨 EVENTO CRÍTICO");
-            const response = await IsfalidDelivery({ shop_id, order_sn });
+            console.log("🚨 EVENTO CRÍTICO - CANCELADO");
+            const response = await IsfalidDelivery({
+                shop_id: shop,
+                order_sn: ordersn,
+            });
             console.log(response);
         })();
+    }
+    if (status === "TO_RETURN") {
+        console.log("📦 Pedido em devolução:", ordersn);
     }
 });
 exports.default = router;
