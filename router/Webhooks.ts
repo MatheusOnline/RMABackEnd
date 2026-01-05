@@ -1,6 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import { ShopModel } from "../models/shopModel";
+import { ReturnModel } from "../models/returnModel";
 import refreshAccessToken from "../utils/refreshAccessToken";
 
 const partner_id = process.env.PARTNER_ID;
@@ -8,11 +9,6 @@ const host = process.env.HOST;
 
 const router = express.Router();
 
-async function SeachShop(shop_id: string) {
-  const shop = await ShopModel.findOne({ shop_id });
-
-  if (shop) return shop;
-}
 
 interface IsFalidDeliveryProps {
   shop_id: string;
@@ -71,14 +67,14 @@ async function IsfalidDelivery({ shop_id, order_sn }: IsFalidDeliveryProps) {
       access_token,
       order_sn_list: order_sn,
       response_optional_fields:
-        "cancel_by,cancel_reason,package_list,shipping_carrier,fulfillment_flag,pickup_done_time",
+        "cancel_by,cancel_reason,package_list,pickup_done_time,buyer_username,item_list,image_info",
     };
 
     const url = `${host}${path}?${new URLSearchParams(params)}`;
     const response = await fetch(url);
     const json = await response.json();
 
-    // ⚠️ erro estava escrito errado
+   
     if (json.error === "invalid_acceess_token") {
       const newToken = await refreshAccessToken(shop_id);
 
@@ -91,19 +87,167 @@ async function IsfalidDelivery({ shop_id, order_sn }: IsFalidDeliveryProps) {
       continue;
     }
 
-    if (!json.response?.order_list?.length) {
-      return { isFailed: true };
-    }
+    //if (!json.response?.order_list?.length) {
+     // return { isFailed: true };
+    //}
 
-    return {
-      order_sn,
-      Shop: shop.name,
-      Motivo: json.response.order_list[0].cancel_reason,
-    };
+    const order = json.response.order_list[0];
+    const pkg = order.package_list?.[0];
+    const item = order.item_list?.[0];
+    
+    if(pkg?.logistics_status === "LOGISTICS_DELIVERY_FAILED")
+    {
+        
+      
+      const rma = await ReturnModel.create({
+        shop_id,
+
+        return_sn: "", // Shopee ainda não gera return_sn nesse ponto
+
+        order_sn: order.order_sn,
+
+        status_shopee: pkg?.logistics_status ?? "UNKNOWN",
+
+        tracking_number: pkg?.package_number ?? "",
+
+        status: "EM TRANSPORTE",
+
+        reason: order.cancel_reason || "Falha na entrega",
+
+        text_reason: order.cancel_reason || "",
+
+        create_time: String(order.create_time),
+
+        buyer_videos: [], // Shopee não envia vídeos nesse endpoint
+
+        user: {
+          username: order.buyer_username,
+          portrait: "", // Shopee não envia avatar
+        },
+
+        item: [
+          {
+            images: [
+              item?.image_info?.image_url
+            ].filter(Boolean),
+
+            item_id: String(item.item_id),
+
+            item_price: String(item.model_discounted_price),
+
+            amount: String(item.model_quantity_purchased),
+
+            name: item.item_name,
+          }
+        ],
+      });
+
+      return rma
+    }
   }
 
   return { isFailed: true };
 }
+
+interface GetReturnDetailProps {
+  shop_id: string;
+  return_sn: string;
+}
+
+async function GetReturnDetailAndSave({ shop_id, return_sn }: GetReturnDetailProps) {
+  let retries = 0;
+
+  while (retries < 2) {
+    const shop = await ShopModel.findOne({ shop_id });
+    if (!shop) return { isFailed: true };
+
+    const path = "/api/v2/returns/get_return_detail";
+    const ts = Math.floor(Date.now() / 1000);
+    const access_token = (shop as any).access_token;
+
+    const sign = Sing({
+      path,
+      ts,
+      access_token,
+      shop_id: Number(shop_id),
+    });
+
+    const params = {
+      partner_id: String(partner_id),
+      sign,
+      timestamp: String(ts),
+      shop_id: String(shop_id),
+      access_token,
+      return_sn,
+    };
+
+    const url = `${host}${path}?${new URLSearchParams(params)}`;
+    const response = await fetch(url);
+    const json = await response.json();
+
+    // 🔁 token expirado (ESSE ERRO TA CERTO SIM)
+    if (json.error === "invalid_acceess_token") {
+      const newToken = await refreshAccessToken(shop_id);
+      if (!newToken) return { isFailed: true };
+
+      shop.access_token = newToken;
+      await shop.save();
+
+      retries++;
+      continue;
+    }
+
+    if (!json.response) {
+      return { isFailed: true };
+    }
+
+    const r = json.response;
+
+    // 🧠 monta itens
+    const items = (r.item || []).map((it: any) => ({
+      images: it.images ?? [],
+      item_id: String(it.item_id),
+      item_price: String(it.item_price ?? it.refund_amount ?? 0),
+      amount: String(it.amount),
+      name: it.name,
+    }));
+
+    // 💾 salva no banco
+    const saved = await ReturnModel.create({
+      shop_id,
+
+      return_sn: r.return_sn,
+
+      order_sn: r.order_sn,
+
+      status_shopee: r.reverse_logistic_status || r.logistics_status || r.status,
+
+      tracking_number: r.tracking_number ?? "",
+
+      status: r.status,
+
+      reason: r.reason ?? "",
+
+      text_reason: r.text_reason ?? "",
+
+      create_time: String(r.create_time),
+
+      buyer_videos: r.buyer_videos ?? [],
+
+      user: {
+        username: r.user?.username ?? "",
+        portrait: r.user?.portrait ?? "",
+      },
+
+      item: items,
+    });
+
+    return saved;
+  }
+
+  return { isFailed: true };
+}
+
 
 
 router.post("/test", async (req, res) => {
@@ -116,13 +260,14 @@ router.post("/test", async (req, res) => {
 
 router.post("/shopee", (req, res) => {
   // 🚀 responde imediatamente
-  res.status(200).json({ success: true });
+  //res.status(200).json({ success: true });
 
   // 👇 tudo abaixo não afeta mais a Shopee
+   
   if (req.body.code === 0) return;
 
-  if (req.body.code !== 3 || !req.body.data?.status) return;
-
+  
+  console.log("teste")
   const { status, ordersn } = req.body.data;
   const shop = req.body.shop_id;
 
@@ -134,13 +279,24 @@ router.post("/shopee", (req, res) => {
         shop_id: shop,
         order_sn: ordersn,
       });
-
+      
+      res.json(response)
       console.log(response);
+      
     })();
   }
-
+ 
   if (status === "TO_RETURN") {
-    console.log("📦 Pedido em devolução:", ordersn);
+     
+    console.log("📦 Pedido em devolução:",  req.body.data.return_sn);
+    (async () => {
+     const response = await GetReturnDetailAndSave({
+        shop_id: shop,
+        return_sn: req.body.data.return_sn,
+      });
+
+      res.json(response)
+    })();
   }
 });
 

@@ -20,7 +20,7 @@ const itemSchema = new mongoose.Schema({
 
 const returnSchema = new mongoose.Schema({
     shop_id:{type: String, required: true},
-    return_sn: {type: String, required: true},
+    return_sn: {type: String, required: false},
     order_sn: {type: String, required: true},
     status_shopee: {type: String, required: true},
     tracking_number: {type: String, required: false},
