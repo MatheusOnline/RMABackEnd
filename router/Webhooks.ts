@@ -271,7 +271,7 @@ router.post("/shopee", (req, res) => {
   const { status, ordersn } = req.body.data;
   const shop = req.body.shop_id;
 
-  console.log ("Loja: " + shop + " | "  + " Pedido:" + ordersn)
+  console.log(req.body)
   if (status === "CANCELLED") {
     (async () => {
       console.log("🚨 EVENTO CRÍTICO - CANCELADO");
