@@ -196,7 +196,7 @@ router.post("/shopee", (req, res) => {
             console.log(response);
         })();
     }
-    if (status === "TO_RETURN") {
+    if (req.body.code === 29) {
         console.log("📦 Pedido em devolução:", req.body.data.return_sn);
         (async () => {
             const response = await GetReturnDetailAndSave({
