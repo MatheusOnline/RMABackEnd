@@ -196,8 +196,10 @@ async function GetReturnDetailAndSave({ shop_id, return_sn }: GetReturnDetailPro
       retries++;
       continue;
     }
-
+    console.log(json)
     if (!json.response) {
+     
+     
       return { isFailed: true };
     }
 
@@ -281,7 +283,6 @@ router.post("/shopee", (req, res) => {
         order_sn: ordersn,
       });
       
-      res.json(response)
       console.log(response);
       
     })();
@@ -296,7 +297,7 @@ router.post("/shopee", (req, res) => {
         return_sn: req.body.data.return_sn,
       });
 
-      res.json(response)
+      console.log(response);
     })();
   }
 });
