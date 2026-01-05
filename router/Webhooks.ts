@@ -260,17 +260,18 @@ router.post("/test", async (req, res) => {
 
 router.post("/shopee", (req, res) => {
   // 🚀 responde imediatamente
-  //res.status(200).json({ success: true });
+  res.status(200).json({ success: true });
 
   // 👇 tudo abaixo não afeta mais a Shopee
    
   if (req.body.code === 0) return;
 
   
-  console.log("teste")
+  
   const { status, ordersn } = req.body.data;
   const shop = req.body.shop_id;
 
+  console.log ("Loja: " + shop + " | "  + " Pedido:" + ordersn)
   if (status === "CANCELLED") {
     (async () => {
       console.log("🚨 EVENTO CRÍTICO - CANCELADO");
